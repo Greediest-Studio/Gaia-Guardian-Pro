@@ -141,26 +141,12 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         super.setHealth(Math.max(health, getHealth() - 30F));
     }
 
-    private void punish() {
-        if (!ConfigHandler.ENABLE_ILLEGALACTION)
-            if (this.getPlayersAround().size() > this.playerCount) {
-                if (this.world.isRemote)
-                    for (EntityPlayer player : this.getPlayersAround())
-                        if (player != null && !player.isDead)
-                            player.sendMessage(new TextComponentTranslation("botaniamisc.illegalBattle")
-                                    .setStyle(new Style().setColor(TextFormatting.RED)));
-                this.setDead();
-            }
-    }
-
     @Override
     public void onLivingUpdate() {
         super.onLivingUpdate();
 
         if (this.ticksExisted < 60)
             return;
-
-        punish();
 
         for (EntityPlayer player : getPlayersAround()) {
             this.faceEntity(player, 360F, 360F);
@@ -215,6 +201,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
 
         List<EntityPlayer> players = getPlayersAround();
 
+        //玩家离场处理，如果没离场就持续上降低治疗量的buff
         if (players.isEmpty() && !world.playerEntities.isEmpty())
             setDead();
         else {
@@ -271,11 +258,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                 landmine.summoner = this;
                 world.spawnEntity(landmine);
             }
-
-        if (ConfigHandler.GAIA_DISARM)
-            for (EntityPlayer player : getPlayersAround())
-                if (!player.isCreative())
-                    disarm(player);
 
         if (cd > 0 && getRankII())
             cd--;
@@ -346,23 +328,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         return true;
     }
 
-    private void disarm(EntityPlayer player) {
-        if (!match(player.getHeldItemMainhand())) {
-            EntityItem item = player.dropItem(true);
-            item.setPickupDelay(90);
-        }
-        for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
-            ItemStack stackAt = player.inventory.getStackInSlot(i);
-            if (!match(stackAt)) {
-                if (!stackAt.isEmpty()) {
-                    EntityItem item = player.entityDropItem(stackAt, 0);
-                    item.setPickupDelay(90);
-                }
-                player.inventory.setInventorySlotContents(i, ItemStack.EMPTY);
-            }
-        }
-    }
-
     private static ItemStack parseItems(String str) {
         String[] entry = str.replace(" ", "").split(":");
         int meta = entry.length > 2 ? Integer.valueOf(entry[2]) : 0;
@@ -385,6 +350,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         return false;
     }
 
+    //匹配方块
     private boolean match(Block block) {
         String m = Block.REGISTRY.getNameForObject(block).toString();
         if (m.indexOf("botania") != -1 || m.indexOf("extrabotany") != -1 || m.indexOf("minecraft") != -1)
@@ -449,13 +415,15 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         }
     }
 
+
+    //boss生成
     public static boolean spawn(EntityPlayer player, ItemStack stack, World world, BlockPos pos, boolean hard) {
         // initial checks
         if (!(world.getTileEntity(pos) instanceof TileEntityBeacon) || !isTruePlayer(player)
                 || getGaiaGuardiansAround(world, pos) > 0)
             return false;
 
-        // check difficulty
+        //检测难度
         if (world.getDifficulty() == EnumDifficulty.PEACEFUL) {
             if (!world.isRemote)
                 player.sendMessage(new TextComponentTranslation("botaniamisc.peacefulNoob")
@@ -472,7 +440,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                 player.sendMessage(new TextComponentTranslation("botaniamisc.needsCatalysts")
                         .setStyle(new Style().setColor(TextFormatting.RED)));
             }
-
             return false;
         }
 
@@ -502,10 +469,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
 
         // all checks ok, spawn the boss
         if (!world.isRemote) {
-            if (stack.getItem() == Items.BOOK) {
-                stack.shrink(1);
-            }
-
             EntityGaiaPro e = new EntityGaiaPro(world);
             e.setPosition(pos.getX() + 0.5, pos.getY() + 3, pos.getZ() + 0.5);
             e.source = pos;
@@ -852,6 +815,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         return l.size();
     }
 
+    //出场特效
     private void particles() {
         BlockPos source = getSource();
 

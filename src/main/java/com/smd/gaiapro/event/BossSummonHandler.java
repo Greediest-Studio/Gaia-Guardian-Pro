@@ -4,6 +4,7 @@ import com.meteor.extrabotany.common.core.config.ConfigHandler;
 import com.smd.gaiapro.common.entity.EntityGaiaPro;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -17,17 +18,27 @@ public class BossSummonHandler {
 
     @SubscribeEvent
     public static void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
+
+        if (event.getWorld().isRemote) {
+            return;
+        }
+
         World world = event.getWorld();
         BlockPos pos = event.getPos();
         EntityPlayer player = event.getEntityPlayer();
         EnumHand hand = event.getHand();
+        ItemStack stack = player.getHeldItem(hand);
 
-        if (player.getHeldItem(hand).getItem() == Items.BOOK && player.isSneaking()) {
-
+        if (stack.getItem() == Items.BOOK && player.isSneaking()) {
             if (ConfigHandler.GAIA_ENABLE) {
-                if (EntityGaiaPro.spawn(player, player.getHeldItem(hand), world, pos, false)) {
-                    event.setResult(Event.Result.ALLOW);
+                if (EntityGaiaPro.spawn(player, stack, world, pos, false)) {
+
+                    if (!player.capabilities.isCreativeMode) {
+                        stack.shrink(1);
+                    }
+
                     event.setCanceled(true);
+                    event.setResult(Event.Result.ALLOW);
                 }
             }
         }
