@@ -502,14 +502,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
 
         // all checks ok, spawn the boss
         if (!world.isRemote) {
-            if (stack.getItem() instanceof ItemNatureOrb) {
-                ItemNatureOrb o = (ItemNatureOrb) stack.getItem();
-                o.addXP(stack, -200000);
-            }
-            if (stack.getItem() == Item.getItemFromBlock(Blocks.STONE)) {
-                stack.shrink(1);
-            }
-                if (stack.getItem() instanceof ItemMaterial) {
+            if (stack.getItem() == Items.BOOK) {
                 stack.shrink(1);
             }
 
