@@ -77,7 +77,7 @@ import vazkii.botania.common.network.PacketHandler;
 public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntityWithShield, IEntityAdditionalSpawnData {
 
     public static final float ARENA_RANGE = 12F;
-    private static final float MAX_HP = 600F;
+    private static final float MAX_HP = 1200F;
 
     private static final String TAG_INVUL_TIME = "invulTime";
     private static final String TAG_AGGRO = "aggro";
@@ -314,40 +314,11 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         }
     }
 
-    private static boolean check(EntityPlayer player) {
-        if (player.isCreative())
-            return true;
-        if (!match(player.getHeldItemMainhand()))
-            return false;
-        for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
-            ItemStack stackAt = player.inventory.getStackInSlot(i);
-            if (!match(stackAt)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     private static ItemStack parseItems(String str) {
         String[] entry = str.replace(" ", "").split(":");
         int meta = entry.length > 2 ? Integer.valueOf(entry[2]) : 0;
         ItemStack stack = new ItemStack(Item.REGISTRY.getObject(new ResourceLocation(entry[0], entry[1])), 1, meta);
         return stack;
-    }
-
-    public static boolean match(ItemStack stack) {
-        String m = stack.getItem().getRegistryName().toString();
-        String[] whitelist = ConfigHandler.WHITELIST;
-        if (whitelist.length > 0)
-            for (int i = 0; i < whitelist.length; i++) {
-                ItemStack compared = parseItems(whitelist[i]);
-                compared.setCount(stack.getCount());
-                if (stack.areItemStacksEqual(stack, compared))
-                    return true;
-            }
-        if (m.indexOf("botania") != -1 || m.indexOf("extrabotany") != -1 || m.indexOf("minecraft") != -1)
-            return true;
-        return false;
     }
 
     //匹配方块
@@ -459,15 +430,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
             return false;
         }
 
-        // check inventory
-        if (!check(player)) {
-            if (world.isRemote)
-                player.sendMessage(new TextComponentTranslation("botaniamisc.illegalInventory")
-                        .setStyle(new Style().setColor(TextFormatting.RED)));
-            return false;
-        }
-
-        // all checks ok, spawn the boss
+        //判断完毕，召唤boss
         if (!world.isRemote) {
             EntityGaiaPro e = new EntityGaiaPro(world);
             e.setPosition(pos.getX() + 0.5, pos.getY() + 3, pos.getZ() + 0.5);
@@ -662,6 +625,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         this.setHealth(0.0F);
     }
 
+    //受伤传送+限伤+挨打拉回玩家
     @Override
     public boolean attackEntityFrom(@Nonnull DamageSource source, float par2) {
         Entity e = source.getTrueSource();
@@ -696,6 +660,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
 
     private static final Pattern FAKE_PLAYER_PATTERN = Pattern.compile("^(?:\\[.*\\])|(?:ComputerCraft)$");
 
+    //判断玩家真假
     public static boolean isTruePlayer(Entity e) {
         if (!(e instanceof EntityPlayer))
             return false;
@@ -706,6 +671,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         return !(player instanceof FakePlayer || FAKE_PLAYER_PATTERN.matcher(name).matches());
     }
 
+    //受伤被击退并减少传送冷却
     @Override
     protected void damageEntity(@Nonnull DamageSource par1DamageSource, float par2) {
         super.damageEntity(par1DamageSource, par2);
@@ -725,6 +691,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         }
     }
 
+    //死亡效果
     @Override
     public void onDeath(@Nonnull DamageSource source) {
         super.onDeath(source);
