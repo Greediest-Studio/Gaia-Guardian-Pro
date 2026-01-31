@@ -1,10 +1,13 @@
 package com.smd.gaiapro.event;
 
+import com.meteor.extrabotany.common.brew.ModPotions;
 import com.meteor.extrabotany.common.core.config.ConfigHandler;
 import com.smd.gaiapro.common.entity.EntityGaiaPro;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import net.minecraft.potion.PotionEffect;
+import net.minecraft.tileentity.TileEntityBeacon;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -17,7 +20,7 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 public class BossSummonHandler {
 
     @SubscribeEvent
-    public static void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
+    public static void GaiaSpawn(PlayerInteractEvent.RightClickBlock event) {
 
         if (event.getWorld().isRemote) {
             return;
@@ -35,12 +38,30 @@ public class BossSummonHandler {
 
                     if (!player.capabilities.isCreativeMode) {
                         stack.shrink(1);
+                        player.addPotionEffect(new PotionEffect(ModPotions.witchcurse, 200, 0));
                     }
 
                     event.setCanceled(true);
                     event.setResult(Event.Result.ALLOW);
                 }
             }
+        }
+    }
+
+    @SubscribeEvent
+    public static void BeaconClosed(PlayerInteractEvent.RightClickBlock event) {
+
+        if (event.getWorld().isRemote) {
+            return;
+        }
+
+        World world = event.getWorld();
+        BlockPos pos = event.getPos();
+        EntityPlayer player = event.getEntityPlayer();
+
+        if ((world.getTileEntity(pos) instanceof TileEntityBeacon) && player.isPotionActive(ModPotions.witchcurse)){
+            event.setCanceled(true);
+            event.setResult(Event.Result.ALLOW);
         }
     }
 }
