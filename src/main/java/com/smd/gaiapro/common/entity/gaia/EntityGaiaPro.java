@@ -73,14 +73,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     private static final float MAX_HP = 640F;
     private static final int SPAWN_TICKS = 160;
 
-    private static final int MOB_SPAWN_START_TICKS = 20;
-    private static final int MOB_SPAWN_END_TICKS = 80;
-    private static final int MOB_SPAWN_BASE_TICKS = 800;
-    private static final int MOB_SPAWN_TICKS = MOB_SPAWN_BASE_TICKS + MOB_SPAWN_START_TICKS + MOB_SPAWN_END_TICKS;
-    private static final int MOB_SPAWN_WAVES = 10;
-    private static final int MOB_SPAWN_WAVE_TIME = MOB_SPAWN_BASE_TICKS / MOB_SPAWN_WAVES;
-
-
     private static final String TAG_INVUL_TIME = "invulTime";
     private static final String TAG_AGGRO = "aggro";
     private static final String TAG_SOURCE_X = "sourceX";
@@ -118,7 +110,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
             new TextComponentTranslation("entity." + LibEntityNames.DOPPLEGANGER_REGISTRY + ".name"),
             BossInfo.Color.PINK, BossInfo.Overlay.PROGRESS).setCreateFog(true);;
 
-    private int mobSpawnTicks = 0;
     private UUID bossInfoUUID = bossInfo.getUniqueId();
     private int playerCount = 0;
     private boolean hardMode = false;
@@ -130,6 +121,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     public final List<UUID> playersWhoAttacked = new ArrayList<>();
     public EntityPlayer trueKiller = null;
 
+    //生物属性
     public EntityGaiaPro(World world) {
         super(world);
         setSize(0.6F, 1.8F);
@@ -140,192 +132,265 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         }
     }
 
+    //设置属性
+    @Override
+    protected void applyEntityAttributes() {
+        super.applyEntityAttributes();
+        getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.4);
+        getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(MAX_HP);
+        getEntityAttribute(SharedMonsterAttributes.KNOCKBACK_RESISTANCE).setBaseValue(1.0);
+    }
+
+    //boss生成
+    public static boolean spawn(EntityPlayer player, ItemStack stack, World world, BlockPos pos, boolean hard) {
+        //检测是否是信标，真玩家，是否存在其他盖亚
+        if (!(world.getTileEntity(pos) instanceof TileEntityBeacon) || !isTruePlayer(player)
+                || getGaiaGuardiansAround(world, pos) > 0)
+            return false;
+
+        //检测难度
+        if (world.getDifficulty() == EnumDifficulty.PEACEFUL) {
+            if (!world.isRemote)
+                player.sendMessage(new TextComponentTranslation("botaniamisc.peacefulNoob")
+                        .setStyle(new Style().setColor(TextFormatting.RED)));
+            return false;
+        }
+
+        //检测非法方块
+        List<BlockPos> invalidPylonBlocks = checkPylons(world, pos);
+        if (!invalidPylonBlocks.isEmpty()) {
+            if (world.isRemote) {
+                warnInvalidBlocks(invalidPylonBlocks);
+            } else {
+                player.sendMessage(new TextComponentTranslation("botaniamisc.needsCatalysts")
+                        .setStyle(new Style().setColor(TextFormatting.RED)));
+            }
+            return false;
+        }
+
+        //检测场地形状
+        List<BlockPos> invalidArenaBlocks = checkArena(world, pos);
+        if (!invalidArenaBlocks.isEmpty()) {
+            if (world.isRemote) {
+                warnInvalidBlocks(invalidArenaBlocks);
+            } else {
+                PacketHandler.sendTo((EntityPlayerMP) player, new PacketBotaniaEffect(
+                        PacketBotaniaEffect.EffectType.ARENA_INDICATOR, pos.getX(), pos.getY(), pos.getZ()));
+
+                player.sendMessage(new TextComponentTranslation("botaniamisc.badArena")
+                        .setStyle(new Style().setColor(TextFormatting.RED)));
+            }
+
+            return false;
+        }
+
+        //判断完毕，召唤boss
+        if (!world.isRemote) {
+            EntityGaiaPro e = new EntityGaiaPro(world);
+            e.setPosition(pos.getX() + 0.5, pos.getY() + 3, pos.getZ() + 0.5);
+            e.setInvulTime(SPAWN_TICKS);
+            e.setHealth(1);
+            e.source = pos;
+            e.hardMode = hard;
+            e.setShield(5);
+
+            int playerCount = e.getPlayersAround().size();
+            e.playerCount = playerCount;
+            e.getAttributeMap().getAttributeInstance(SharedMonsterAttributes.MAX_HEALTH)
+                    .setBaseValue(MAX_HP * playerCount);
+            e.getAttributeMap().getAttributeInstance(SharedMonsterAttributes.ARMOR).setBaseValue(15);
+
+            e.setCustomNameTag(player.getGameProfile().getName());
+            e.playSound(SoundEvents.ENTITY_ENDERDRAGON_GROWL, 10F, 0.1F);
+            e.onInitialSpawn(world.getDifficultyForLocation(new BlockPos(e)), null);
+            world.spawnEntity(e);
+        }
+
+        return true;
+    }
+
     @Override
     public void onLivingUpdate() {
-        super.onLivingUpdate();
 
+        super.onLivingUpdate();
+        //
         int invul = getInvulTime();
 
-        if(invul > 0 && mobSpawnTicks == MOB_SPAWN_TICKS) { // 无敌且未进入召唤阶段
-            if(invul < SPAWN_TICKS) {
+        bossInfo.setPercent(getHealth() / getMaxHealth());
 
-                if(invul > SPAWN_TICKS / 2 && world.rand.nextInt(SPAWN_TICKS - invul + 1) == 0)
-                    for(int i = 0; i < 2; i++) spawnExplosionParticle();
+        if (invul > 0) {
+            if (invul < SPAWN_TICKS) {
+
+                if (invul > SPAWN_TICKS / 2 && world.rand.nextInt(SPAWN_TICKS - invul + 1) == 0)
+                    for (int i = 0; i < 2; i++) spawnExplosionParticle();
             }
             setHealth(getHealth() + (getMaxHealth() - 1F) / SPAWN_TICKS);
             setInvulTime(invul - 1);
             motionY = 0;
-        }
+        } else {
 
-        for (EntityPlayer player : getPlayersAround())
-            if (!playersWhoAttacked.contains(player.getUniqueID()))
-                playersWhoAttacked.add(player.getUniqueID());
-
-        if (!getRankII() && (getHealth() <= getMaxHealth() * 0.8F)) {
-            setRankII(true);
-            setShield(5);
-            spawnMinion();
-            spawnDivineJudge();
             for (EntityPlayer player : getPlayersAround())
-                if (world.isRemote)
-                    player.sendMessage(new TextComponentTranslation("extrabotanymisc.minionSpawn")
-                            .setStyle(new Style().setColor(TextFormatting.WHITE)));
-        }
-        if (!getRankIII()
-                && (getHealth() <= getMaxHealth() * 0.6F)) {
-            setRankIII(true);
-            setShield(10);
-            spawnMinion();
-            spawnDivineJudge();
-            for (EntityPlayer player : getPlayersAround())
-                if (world.isRemote)
-                    player.sendMessage(new TextComponentTranslation("extrabotanymisc.minionSpawn")
-                            .setStyle(new Style().setColor(TextFormatting.WHITE)));
-        }
+                if (!playersWhoAttacked.contains(player.getUniqueID()))
+                    playersWhoAttacked.add(player.getUniqueID());
 
-        BlockPos source = getSource();
-
-        if (world.isRemote) {
-            particles();
-            EntityPlayer player = Botania.proxy.getClientPlayer();
-            if (getPlayersAround().contains(player))
-                player.capabilities.isFlying = player.capabilities.isFlying && player.capabilities.isCreativeMode;
-            return;
-        }
-
-        bossInfo.setPercent(getHealth() / getMaxHealth());
-
-        if (isRiding())
-            dismountRidingEntity();
-
-        if (world.getDifficulty() == EnumDifficulty.PEACEFUL)
-            setDead();
-
-        smashCheatyBlocks();
-
-        List<EntityPlayer> players = getPlayersAround();
-
-        //玩家离场处理，如果没离场就持续上降低治疗量的buff
-        if (players.isEmpty() && !world.playerEntities.isEmpty())
-            setDead();
-        else {
-            for (EntityPlayer player : players) {
-                clearPotions(player);
-                keepInsideArena(player);
-                player.capabilities.isFlying = player.capabilities.isFlying && player.capabilities.isCreativeMode;
-                int potionLevel = 0 + (getRankIII() ? 2 : 0) + this.ticksExisted >= 1800 ? 2 : 0;
-                player.addPotionEffect(new PotionEffect(ModPotions.witchcurse, 200, potionLevel));
-            }
-        }
-
-        if (isDead)
-            return;
-
-        if (getRankIII()) {
-            if (ticksExisted % 65 == 0) {
-                for (int t = 0; t < 2; t++)
-                    spawnMissile(2);
-                heal(1F);
-            }
-            if (cd == 0 && skillType == 1) {
-                for (int t = 0; t < 17 + playerCount * 4; t++)
-                    spawnMissile(3);
-                cd = 220;
-                skillType = 2;
-            }
-        }
-
-        if (getRankII())
-            if (ticksExisted % 55 == 0)
-                spawnMissile(1);
-
-        if (ticksExisted > 60 && ticksExisted % 40 == 0) {
-            spawnMissile(0);
-            if (world.rand.nextInt(10) < 4)
-                spawnMissile(1);
-        }
-
-        int base = getHardcore() ? 10 + playerCount * 4 : 8 + playerCount * 3;
-        int count = getRankIII() ? base + 9 : getRankII() ? base + 5 : base;
-        if (ticksExisted > 200 && ticksExisted % (getRankIII() ? 170 : getRankII() ? 210 : 250) == 0)
-            for (int i = 0; i < count; i++) {
-                int x = source.getX() - 10 + rand.nextInt(20);
-                int z = source.getZ() - 10 + rand.nextInt(20);
-                int y = (int) players.get(rand.nextInt(players.size())).posY;
-
-                EntityLandmine landmine = new EntityLandmine(world);
-                if (i % 6 == 0)
-                    landmine.setType(2);
-                if (i % 5 == 0)
-                    landmine.setType(1);
-                landmine.setPosition(x + 0.5, y, z + 0.5);
-                landmine.summoner = this;
-                world.spawnEntity(landmine);
-            }
-
-        if (cd > 0 && getRankII())
-            cd--;
-
-        if (cd == 250 && skillType == 1)
-            for (EntityPlayer player : getPlayersAround())
-                if (world.isRemote)
-                    player.sendMessage(new TextComponentTranslation("extrabotanymisc.gaiaPreparing", "Boss")
-                            .setStyle(new Style().setColor(TextFormatting.WHITE)));
-
-        if (cd == 100 && skillType == 1)
-            for (EntityPlayer player : getPlayersAround())
-                if (world.isRemote)
-                    player.sendMessage(new TextComponentTranslation("extrabotanymisc.gaiaWarning", "Boss")
-                            .setStyle(new Style().setColor(TextFormatting.RED)));
-
-        if (cd == 100 && skillType == 0)
-            for (EntityPlayer player : getPlayersAround())
-                if (world.isRemote)
-                    player.sendMessage(new TextComponentTranslation("extrabotanymisc.gaiaWarning2", "Boss")
-                            .setStyle(new Style().setColor(TextFormatting.RED)));
-
-        if (cd == 0 && skillType == 0 && !getPlayersAround().isEmpty()) {
-            EntityPlayer player = getPlayersAround().get(world.rand.nextInt(getPlayersAround().size()));
-            if (world.isRemote)
-                player.sendMessage(new TextComponentTranslation("extrabotanymisc.gaiaWarning3", "Boss")
-                        .setStyle(new Style().setColor(TextFormatting.RED)));
-            ExtraBotanyAPI.dealTrueDamage(this, player, (player.getMaxHealth() * 0.20F + 6));
-            cd = 380;
-            skillType = getRankIII() ? 1 : world.rand.nextInt(2);
-        }
-
-        if (cd == 0 && !world.isRemote && skillType == 2) {
-            if (ConfigHandler.GAIA_DIVINEJUDGE)
-                spawnDivineJudge();
-            else
+            if (!getRankII() && (getHealth() <= getMaxHealth() * 0.8F)) {
+                setRankII(true);
+                setShield(5);
                 spawnMinion();
-            cd = 320;
-            skillType = getRankIII() ? 3 : 0;
-        }
+                spawnDivineJudge();
+                for (EntityPlayer player : getPlayersAround())
+                    if (world.isRemote)
+                        player.sendMessage(new TextComponentTranslation("extrabotanymisc.minionSpawn")
+                                .setStyle(new Style().setColor(TextFormatting.WHITE)));
+            }
+            if (!getRankIII()
+                    && (getHealth() <= getMaxHealth() * 0.6F)) {
+                setRankIII(true);
+                setShield(10);
+                spawnMinion();
+                spawnDivineJudge();
+                for (EntityPlayer player : getPlayersAround())
+                    if (world.isRemote)
+                        player.sendMessage(new TextComponentTranslation("extrabotanymisc.minionSpawn")
+                                .setStyle(new Style().setColor(TextFormatting.WHITE)));
+            }
 
-        if (cd == 0 && !world.isRemote && skillType == 3) {
-            spawnMinion();
-            cd = 360;
-            skillType = world.rand.nextInt(1);
-        }
+            BlockPos source = getSource();
 
-        if (tpDelay > 0)
-            tpDelay--;
+            if (world.isRemote) {
+                particles();
+                EntityPlayer player = Botania.proxy.getClientPlayer();
+                if (getPlayersAround().contains(player))
+                    player.capabilities.isFlying = player.capabilities.isFlying && player.capabilities.isCreativeMode;
+                return;
+            }
 
-        if (tpDelay == 0 && getHealth() > 0) {
-            teleportRandomly();
-            tpDelay = getRankIII() ? 85 : 100;
+            if (isRiding())
+                dismountRidingEntity();
+
+            if (world.getDifficulty() == EnumDifficulty.PEACEFUL)
+                setDead();
+
+            smashCheatyBlocks();
+
+            List<EntityPlayer> players = getPlayersAround();
+
+
+            if (isDead)
+                return;
+
+            if (getRankIII()) {
+                if (ticksExisted % 65 == 0) {
+                    for (int t = 0; t < 2; t++)
+                        spawnMissile(2);
+                    heal(1F);
+                }
+                if (cd == 0 && skillType == 1) {
+                    for (int t = 0; t < 17 + playerCount * 4; t++)
+                        spawnMissile(3);
+                    cd = 220;
+                    skillType = 2;
+                }
+            }
+
+            if (getRankII())
+                if (ticksExisted % 55 == 0)
+                    spawnMissile(1);
+
+            if (ticksExisted > 60 && ticksExisted % 40 == 0) {
+                spawnMissile(0);
+                if (world.rand.nextInt(10) < 4)
+                    spawnMissile(1);
+            }
+
+            int base = 10 + playerCount * 4;
+            int count = getRankIII() ? base + 9 : getRankII() ? base + 5 : base;
+            if (ticksExisted > 200 && ticksExisted % (getRankIII() ? 170 : getRankII() ? 210 : 250) == 0)
+                for (int i = 0; i < count; i++) {
+                    int x = source.getX() - 10 + rand.nextInt(20);
+                    int z = source.getZ() - 10 + rand.nextInt(20);
+                    int y = (int) players.get(rand.nextInt(players.size())).posY;
+
+                    EntityLandmine landmine = new EntityLandmine(world);
+                    if (i % 6 == 0)
+                        landmine.setType(2);
+                    if (i % 5 == 0)
+                        landmine.setType(1);
+                    landmine.setPosition(x + 0.5, y, z + 0.5);
+                    landmine.summoner = this;
+                    world.spawnEntity(landmine);
+                }
+
+            if (cd > 0 && getRankII())
+                cd--;
+
+            if (cd == 250 && skillType == 1)
+                for (EntityPlayer player : getPlayersAround())
+                    if (world.isRemote)
+                        player.sendMessage(new TextComponentTranslation("extrabotanymisc.gaiaPreparing", "Boss")
+                                .setStyle(new Style().setColor(TextFormatting.WHITE)));
+
+            if (cd == 100 && skillType == 1)
+                for (EntityPlayer player : getPlayersAround())
+                    if (world.isRemote)
+                        player.sendMessage(new TextComponentTranslation("extrabotanymisc.gaiaWarning", "Boss")
+                                .setStyle(new Style().setColor(TextFormatting.RED)));
+
+            if (cd == 100 && skillType == 0)
+                for (EntityPlayer player : getPlayersAround())
+                    if (world.isRemote)
+                        player.sendMessage(new TextComponentTranslation("extrabotanymisc.gaiaWarning2", "Boss")
+                                .setStyle(new Style().setColor(TextFormatting.RED)));
+
+            if (cd == 0 && skillType == 0 && !getPlayersAround().isEmpty()) {
+                EntityPlayer player = getPlayersAround().get(world.rand.nextInt(getPlayersAround().size()));
+                if (world.isRemote)
+                    player.sendMessage(new TextComponentTranslation("extrabotanymisc.gaiaWarning3", "Boss")
+                            .setStyle(new Style().setColor(TextFormatting.RED)));
+                ExtraBotanyAPI.dealTrueDamage(this, player, (player.getMaxHealth() * 0.20F + 6));
+                cd = 380;
+                skillType = getRankIII() ? 1 : world.rand.nextInt(2);
+            }
+
+            if (cd == 0 && !world.isRemote && skillType == 2) {
+                if (ConfigHandler.GAIA_DIVINEJUDGE)
+                    spawnDivineJudge();
+                else
+                    spawnMinion();
+                cd = 320;
+                skillType = getRankIII() ? 3 : 0;
+            }
+
+            if (cd == 0 && !world.isRemote && skillType == 3) {
+                spawnMinion();
+                cd = 360;
+                skillType = world.rand.nextInt(1);
+            }
+
+            if (tpDelay > 0)
+                tpDelay--;
+
+            if (tpDelay == 0 && getHealth() > 0) {
+                teleportRandomly();
+                tpDelay = getRankIII() ? 85 : 100;
+            }
+
+            //玩家离场处理，如果没离场就持续清理玩家buff并上降低治疗量的buff
+            if (players.isEmpty() && !world.playerEntities.isEmpty())
+                setDead();
+            else {
+                for (EntityPlayer player : players) {
+                    clearPotions(player);
+                    keepInsideArena(player);
+                    player.capabilities.isFlying = player.capabilities.isFlying && player.capabilities.isCreativeMode;
+                    int potionLevel = 0 + (getRankIII() ? 2 : 0) + this.ticksExisted >= 1800 ? 2 : 0;
+                    player.addPotionEffect(new PotionEffect(ModPotions.witchcurse, 200, potionLevel));
+                }
+            }
         }
     }
 
-    //匹配方块
-    private boolean match(Block block) {
-        String m = Block.REGISTRY.getNameForObject(block).toString();
-        if (m.indexOf("botania") != -1 || m.indexOf("extrabotany") != -1 || m.indexOf("minecraft") != -1)
-            return true;
-        return false;
-    }
-
+    //生成辅助攻击生物
     private void spawnMinion() {
         for (int c = 0; c < 4; c++) {
             EntityMinion m = new EntityMinion(world);
@@ -358,6 +423,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         }
     }
 
+    //生成追踪弹
     private void spawnMissile(int type) {
         EntityMissile missile = new EntityMissile(this);
         missile.setPosition(posX + (Math.random() - 0.5 * 0.1), posY + 1.8 + (Math.random() - 0.5 * 0.1),
@@ -383,127 +449,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         }
     }
 
-
-    //boss生成
-    public static boolean spawn(EntityPlayer player, ItemStack stack, World world, BlockPos pos, boolean hard) {
-        // initial checks
-        if (!(world.getTileEntity(pos) instanceof TileEntityBeacon) || !isTruePlayer(player)
-                || getGaiaGuardiansAround(world, pos) > 0)
-            return false;
-
-        //检测难度
-        if (world.getDifficulty() == EnumDifficulty.PEACEFUL) {
-            if (!world.isRemote)
-                player.sendMessage(new TextComponentTranslation("botaniamisc.peacefulNoob")
-                        .setStyle(new Style().setColor(TextFormatting.RED)));
-            return false;
-        }
-
-        // check pylons
-        List<BlockPos> invalidPylonBlocks = checkPylons(world, pos);
-        if (!invalidPylonBlocks.isEmpty()) {
-            if (world.isRemote) {
-                warnInvalidBlocks(invalidPylonBlocks);
-            } else {
-                player.sendMessage(new TextComponentTranslation("botaniamisc.needsCatalysts")
-                        .setStyle(new Style().setColor(TextFormatting.RED)));
-            }
-            return false;
-        }
-
-        // check arena shape
-        List<BlockPos> invalidArenaBlocks = checkArena(world, pos);
-        if (!invalidArenaBlocks.isEmpty()) {
-            if (world.isRemote) {
-                warnInvalidBlocks(invalidArenaBlocks);
-            } else {
-                PacketHandler.sendTo((EntityPlayerMP) player, new PacketBotaniaEffect(
-                        PacketBotaniaEffect.EffectType.ARENA_INDICATOR, pos.getX(), pos.getY(), pos.getZ()));
-
-                player.sendMessage(new TextComponentTranslation("botaniamisc.badArena")
-                        .setStyle(new Style().setColor(TextFormatting.RED)));
-            }
-
-            return false;
-        }
-
-        //判断完毕，召唤boss
-        if (!world.isRemote) {
-            EntityGaiaPro e = new EntityGaiaPro(world);
-            e.setPosition(pos.getX() + 0.5, pos.getY() + 3, pos.getZ() + 0.5);
-            e.source = pos;
-            e.hardMode = hard;
-            e.setShield(5);
-            int playerCount = e.getPlayersAround().size();
-            e.playerCount = playerCount;
-            e.getAttributeMap().getAttributeInstance(SharedMonsterAttributes.MAX_HEALTH)
-                    .setBaseValue(MAX_HP * playerCount);
-            e.getAttributeMap().getAttributeInstance(SharedMonsterAttributes.ARMOR).setBaseValue(15);
-            e.setHealth(1F);
-            e.setInvulTime(SPAWN_TICKS);
-            e.mobSpawnTicks = MOB_SPAWN_TICKS;
-            e.setCustomNameTag(player.getGameProfile().getName());
-            e.playSound(SoundEvents.ENTITY_ENDERDRAGON_GROWL, 10F, 0.1F);
-            e.onInitialSpawn(world.getDifficultyForLocation(new BlockPos(e)), null);
-            world.spawnEntity(e);
-        }
-
-        return true;
-    }
-
-    private static void warnInvalidBlocks(Iterable<BlockPos> invalidPositions) {
-        Botania.proxy.setWispFXDepthTest(false);
-        for (BlockPos pos_ : invalidPositions) {
-            Botania.proxy.wispFX(pos_.getX() + 0.5, pos_.getY() + 0.5, pos_.getZ() + 0.5, 1F, 0.2F, 0.2F, 0.5F, 0F, 8);
-        }
-        Botania.proxy.setWispFXDepthTest(true);
-    }
-
-    private static List<BlockPos> checkPylons(World world, BlockPos beaconPos) {
-        List<BlockPos> invalidPylonBlocks = new ArrayList<>();
-
-        for (BlockPos coords : PYLON_LOCATIONS) {
-            BlockPos pos_ = beaconPos.add(coords);
-
-            IBlockState state = world.getBlockState(pos_);
-            if (state.getBlock() != ModBlocks.pylon
-                    || state.getValue(BotaniaStateProps.PYLON_VARIANT) != PylonVariant.GAIA) {
-                invalidPylonBlocks.add(pos_);
-            }
-        }
-
-        return invalidPylonBlocks;
-    }
-
-    private static List<BlockPos> checkArena(World world, BlockPos beaconPos) {
-        List<BlockPos> trippedPositions = new ArrayList<>();
-        int range = (int) Math.ceil(ARENA_RANGE);
-        BlockPos pos;
-
-        for (int x = -range; x <= range; x++)
-            for (int z = -range; z <= range; z++) {
-                if (Math.abs(x) == 4 && Math.abs(z) == 4
-                        || vazkii.botania.common.core.helper.MathHelper.pointDistancePlane(x, z, 0, 0) > ARENA_RANGE)
-                    continue; // Ignore pylons and out of circle
-
-                for (int y = -1; y <= 5; y++) {
-                    if (x == 0 && y == 0 && z == 0)
-                        continue; // this is the beacon
-
-                    pos = beaconPos.add(x, y, z);
-
-                    boolean expectedBlockHere = y == -1; // the floor
-                    boolean isBlockHere = world.getBlockState(pos).getCollisionBoundingBox(world, pos) != null;
-
-                    if (expectedBlockHere != isBlockHere) {
-                        trippedPositions.add(pos);
-                    }
-                }
-            }
-
-        return trippedPositions;
-    }
-
     @Override
     protected void initEntityAI() {
         tasks.addTask(0, new EntityAISwimming(this));
@@ -523,10 +468,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
 
     public boolean getHardcore() {
         return dataManager.get(HARDCORE);
-    }
-
-    public void setHardcore(boolean b) {
-        dataManager.set(HARDCORE, b);
     }
 
     public boolean getRankII() {
@@ -571,7 +512,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         super.writeEntityToNBT(cmp);
         cmp.setInteger(TAG_INVUL_TIME, getInvulTime());
         cmp.setBoolean(TAG_AGGRO, aggro);
-
         cmp.setInteger(TAG_SOURCE_X, source.getX());
         cmp.setInteger(TAG_SOURCE_Y, source.getY());
         cmp.setInteger(TAG_SOURCE_Z, source.getZ());
@@ -588,7 +528,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         super.readEntityFromNBT(cmp);
         setInvulTime(cmp.getInteger(TAG_INVUL_TIME));
         aggro = cmp.getBoolean(TAG_AGGRO);
-
         int x = cmp.getInteger(TAG_SOURCE_X);
         int y = cmp.getInteger(TAG_SOURCE_Y);
         int z = cmp.getInteger(TAG_SOURCE_Z);
@@ -605,6 +544,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         setDamageTaken(cmp.getFloat(TAG_DAMAGETAKEN));
     }
 
+    //设置生物名
     @Override
     public void setCustomNameTag(@Nonnull String name) {
         super.setCustomNameTag(name);
@@ -618,6 +558,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         }
     }
 
+    //指令杀效果
     @Override
     public void onKillCommand() {
         this.setHealth(0.0F);
@@ -656,20 +597,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         return false;
     }
 
-    //假人判断
-    private static final Pattern FAKE_PLAYER_PATTERN = Pattern.compile("^(?:\\[.*\\])|(?:ComputerCraft)$");
-
-    //判断玩家真假
-    public static boolean isTruePlayer(Entity e) {
-        if (!(e instanceof EntityPlayer))
-            return false;
-
-        EntityPlayer player = (EntityPlayer) e;
-
-        String name = player.getName();
-        return !(player instanceof FakePlayer || FAKE_PLAYER_PATTERN.matcher(name).matches());
-    }
-
     //受伤被击退并减少传送冷却
     @Override
     protected void damageEntity(@Nonnull DamageSource par1DamageSource, float par2) {
@@ -697,15 +624,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         playSound(SoundEvents.ENTITY_GENERIC_EXPLODE, 20F,
                 (1F + (world.rand.nextFloat() - world.rand.nextFloat()) * 0.2F) * 0.7F);
         world.spawnParticle(EnumParticleTypes.EXPLOSION_HUGE, posX, posY, posZ, 1D, 0D, 0D);
-    }
-
-    //设置属性
-    @Override
-    protected void applyEntityAttributes() {
-        super.applyEntityAttributes();
-        getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.4);
-        getEntityAttribute(SharedMonsterAttributes.MAX_HEALTH).setBaseValue(MAX_HP);
-        getEntityAttribute(SharedMonsterAttributes.KNOCKBACK_RESISTANCE).setBaseValue(1.0);
     }
 
     @Override
@@ -1060,12 +978,17 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     @Override
     @SideOnly(Side.CLIENT)
     public Rectangle getBossBarHPTextureRect() {
-        if (hpBarRect == null)
+
+        if(barRect == null) {
+            getBossBarTextureRect();
+        }
+
+        if(hpBarRect == null)
             hpBarRect = new Rectangle(0, barRect.y + barRect.height, 181, 7);
         return hpBarRect;
     }
 
-
+    //血条渲染
     @Override
     @SideOnly(Side.CLIENT)
     public int bossBarRenderCallback(ScaledResolution res, int x, int y) {
@@ -1082,8 +1005,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
 
             GlStateManager.pushMatrix();
 
-            // 在凋零头左侧绘制护盾图标
-            int shieldX = px - 25; // 护盾在凋零头左侧
+            int shieldX = px - 25;
             mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
             net.minecraft.client.renderer.RenderHelper.enableGUIStandardItemLighting();
             GlStateManager.enableRescaleNormal();
@@ -1093,14 +1015,14 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
             boolean unicode = mc.fontRenderer.getUnicodeFlag();
             mc.fontRenderer.setUnicodeFlag(true);
 
-            int shieldColor = 0x00FF00; // 绿色
+            int shieldColor = 0x00FF00;
 
             mc.fontRenderer.drawStringWithShadow("" + shieldLayers, shieldX + 15, py + 4, shieldColor);
             mc.fontRenderer.setUnicodeFlag(unicode);
 
             GlStateManager.popMatrix();
 
-            px += 20; // 向右移动凋零头
+            px += 20;
         }
 
         ItemStack stack = new ItemStack(Items.SKULL, 1, 3);
@@ -1132,13 +1054,13 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     @Override
     @SideOnly(Side.CLIENT)
     public ShaderCallback getBossBarShaderCallback(boolean background, int shader) {
-        if (shaderCallback == null)
+        if(shaderCallback == null)
             shaderCallback = shader1 -> {
                 int grainIntensityUniform = ARBShaderObjects.glGetUniformLocationARB(shader1, "grainIntensity");
                 int hpFractUniform = ARBShaderObjects.glGetUniformLocationARB(shader1, "hpFract");
 
                 float time = getInvulTime();
-                float grainIntensity = time > 20 ? 1F : Math.max(0F, time / 20F);
+                float grainIntensity = time > 20 ? 1F : Math.max(hardMode ? 0.5F : 0F, time / 20F);
 
                 ARBShaderObjects.glUniform1fARB(grainIntensityUniform, grainIntensity);
                 ARBShaderObjects.glUniform1fARB(hpFractUniform, getHealth() / getMaxHealth());
@@ -1178,6 +1100,8 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         dataManager.set(SHIELD, shield);
     }
 
+
+    //写入生成信息方法
     @Override
     public void writeSpawnData(ByteBuf buffer) {
         buffer.writeInt(playerCount);
@@ -1187,6 +1111,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         buffer.writeLong(bossInfoUUID.getLeastSignificantBits());
     }
 
+    //读取生成信息方法
     @Override
     @SideOnly(Side.CLIENT)
     public void readSpawnData(ByteBuf additionalData) {
@@ -1203,4 +1128,83 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     public UUID getBossInfoUuid() {
         return bossInfoUUID;
     }
+
+    //匹配方块方法
+    private boolean match(Block block) {
+        String m = Block.REGISTRY.getNameForObject(block).toString();
+        if (m.indexOf("botania") != -1 || m.indexOf("extrabotany") != -1 || m.indexOf("minecraft") != -1)
+            return true;
+        return false;
+    }
+
+    //假人判断方法
+    private static final Pattern FAKE_PLAYER_PATTERN = Pattern.compile("^(?:\\[.*\\])|(?:ComputerCraft)$");
+
+    //判断玩家真假方法
+    public static boolean isTruePlayer(Entity e) {
+        if (!(e instanceof EntityPlayer))
+            return false;
+
+        EntityPlayer player = (EntityPlayer) e;
+
+        String name = player.getName();
+        return !(player instanceof FakePlayer || FAKE_PLAYER_PATTERN.matcher(name).matches());
+    }
+
+    //场地检查方法
+    private static void warnInvalidBlocks(Iterable<BlockPos> invalidPositions) {
+        Botania.proxy.setWispFXDepthTest(false);
+        for (BlockPos pos_ : invalidPositions) {
+            Botania.proxy.wispFX(pos_.getX() + 0.5, pos_.getY() + 0.5, pos_.getZ() + 0.5, 1F, 0.2F, 0.2F, 0.5F, 0F, 8);
+        }
+        Botania.proxy.setWispFXDepthTest(true);
+    }
+
+    //场地检查方法
+    private static List<BlockPos> checkPylons(World world, BlockPos beaconPos) {
+        List<BlockPos> invalidPylonBlocks = new ArrayList<>();
+
+        for (BlockPos coords : PYLON_LOCATIONS) {
+            BlockPos pos_ = beaconPos.add(coords);
+
+            IBlockState state = world.getBlockState(pos_);
+            if (state.getBlock() != ModBlocks.pylon
+                    || state.getValue(BotaniaStateProps.PYLON_VARIANT) != PylonVariant.GAIA) {
+                invalidPylonBlocks.add(pos_);
+            }
+        }
+
+        return invalidPylonBlocks;
+    }
+
+    //场地检查方法
+    private static List<BlockPos> checkArena(World world, BlockPos beaconPos) {
+        List<BlockPos> trippedPositions = new ArrayList<>();
+        int range = (int) Math.ceil(ARENA_RANGE);
+        BlockPos pos;
+
+        for (int x = -range; x <= range; x++)
+            for (int z = -range; z <= range; z++) {
+                if (Math.abs(x) == 4 && Math.abs(z) == 4
+                        || vazkii.botania.common.core.helper.MathHelper.pointDistancePlane(x, z, 0, 0) > ARENA_RANGE)
+                    continue; // Ignore pylons and out of circle
+
+                for (int y = -1; y <= 5; y++) {
+                    if (x == 0 && y == 0 && z == 0)
+                        continue; // this is the beacon
+
+                    pos = beaconPos.add(x, y, z);
+
+                    boolean expectedBlockHere = y == -1; // the floor
+                    boolean isBlockHere = world.getBlockState(pos).getCollisionBoundingBox(world, pos) != null;
+
+                    if (expectedBlockHere != isBlockHere) {
+                        trippedPositions.add(pos);
+                    }
+                }
+            }
+
+        return trippedPositions;
+    }
+
 }
