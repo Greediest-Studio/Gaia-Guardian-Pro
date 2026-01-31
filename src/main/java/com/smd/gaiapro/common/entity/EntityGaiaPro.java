@@ -7,15 +7,13 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Optional;
 import com.meteor.extrabotany.api.ExtraBotanyAPI;
 import com.meteor.extrabotany.api.entity.IEntityWithShield;
 import com.meteor.extrabotany.common.brew.ModPotions;
 import com.meteor.extrabotany.common.core.config.ConfigHandler;
-import com.meteor.extrabotany.common.entity.gaia.*;
-import com.meteor.extrabotany.common.item.ItemMaterial;
-import com.meteor.extrabotany.common.item.equipment.tool.ItemNatureOrb;
-import com.meteor.extrabotany.common.lib.Reference;
+import com.meteor.extrabotany.common.entity.gaia.EntitySkullLandmine;
+import com.meteor.extrabotany.common.entity.gaia.EntitySkullMissile;
+import com.smd.gaiapro.gaiapro.Tags;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -29,15 +27,12 @@ import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.EntityAISwimming;
 import net.minecraft.entity.ai.EntityAIWatchClosest;
-import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.init.MobEffects;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.inventory.EntityEquipmentSlot;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.datasync.DataParameter;
@@ -77,7 +72,7 @@ import vazkii.botania.common.network.PacketHandler;
 public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntityWithShield, IEntityAdditionalSpawnData {
 
     public static final float ARENA_RANGE = 12F;
-    private static final float MAX_HP = 1200F;
+    private static final float MAX_HP = 300F;
 
     private static final String TAG_INVUL_TIME = "invulTime";
     private static final String TAG_AGGRO = "aggro";
@@ -157,9 +152,9 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
             if (!playersWhoAttacked.contains(player.getUniqueID()))
                 playersWhoAttacked.add(player.getUniqueID());
 
-        if (!getRankII() && (getHealth() <= getMaxHealth() * 0.75F || getHardcore())) {
+        if (!getRankII() && (getHealth() <= getMaxHealth() * 0.8F)) {
             setRankII(true);
-            setShield(getHardcore() ? 10 : 5);
+            setShield(5);
             spawnMinion();
             spawnDivineJudge();
             for (EntityPlayer player : getPlayersAround())
@@ -168,9 +163,9 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                             .setStyle(new Style().setColor(TextFormatting.WHITE)));
         }
         if (!getRankIII()
-                && (getHealth() <= getMaxHealth() * 0.4F || getHardcore() && getHealth() <= getMaxHealth() * 0.6F)) {
+                && (getHealth() <= getMaxHealth() * 0.6F)) {
             setRankIII(true);
-            setShield(getHardcore() ? 10 : 5);
+            setShield(10);
             spawnMinion();
             spawnDivineJudge();
             for (EntityPlayer player : getPlayersAround())
@@ -314,13 +309,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         }
     }
 
-    private static ItemStack parseItems(String str) {
-        String[] entry = str.replace(" ", "").split(":");
-        int meta = entry.length > 2 ? Integer.valueOf(entry[2]) : 0;
-        ItemStack stack = new ItemStack(Item.REGISTRY.getObject(new ResourceLocation(entry[0], entry[1])), 1, meta);
-        return stack;
-    }
-
     //匹配方块
     private boolean match(Block block) {
         String m = Block.REGISTRY.getNameForObject(block).toString();
@@ -331,7 +319,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
 
     private void spawnMinion() {
         for (int c = 0; c < 4; c++) {
-            EntitySkullMinion m = new EntitySkullMinion(world);
+            EntityMinion m = new EntityMinion(world);
             BlockPos p = getSource().add(MINION_LOCATIONS[c]);
             m.setPosition(p.getX(), p.getY(), p.getZ());
             m.setType(c);
@@ -658,6 +646,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         return false;
     }
 
+    //假人判断
     private static final Pattern FAKE_PLAYER_PATTERN = Pattern.compile("^(?:\\[.*\\])|(?:ComputerCraft)$");
 
     //判断玩家真假
@@ -700,6 +689,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         world.spawnParticle(EnumParticleTypes.EXPLOSION_HUGE, posX, posY, posZ, 1D, 0D, 0D);
     }
 
+    //设置属性
     @Override
     protected void applyEntityAttributes() {
         super.applyEntityAttributes();
@@ -713,9 +703,10 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         return false;
     }
 
+    //
     @Override
     public ResourceLocation getLootTable() {
-        return new ResourceLocation(Reference.MOD_ID, "gaia_guardian_3");
+        return new ResourceLocation(Tags.MOD_ID, "gaia_guardian_3");
     }
 
     @Override
@@ -757,6 +748,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         trueKiller = null;
     }
 
+    //死亡逻辑
     @Override
     public void setDead() {
         if (world.isRemote) {
@@ -766,6 +758,8 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         super.setDead();
     }
 
+
+    //获取玩家列表
     private List<EntityPlayer> getPlayersAround() {
         BlockPos source = getSource();
         float range = 15F;
@@ -774,6 +768,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                         source.getX() + 0.5 + range, source.getY() + 0.5 + range * 2, source.getZ() + 0.5 + range));
     }
 
+    //获取boss列表
     private static int getGaiaGuardiansAround(World world, BlockPos source) {
         float range = 15F;
         List l = world.getEntitiesWithinAABB(EntityGaiaPro.class,
@@ -920,6 +915,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         return CHEATY_BLOCKS.contains(Block.REGISTRY.getNameForObject(block));
     }
 
+    //传送机制
     private void teleportRandomly() {
         // choose a location to teleport to
         double oldX = posX, oldY = posY, oldZ = posZ;
@@ -1029,6 +1025,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                 }
     }
 
+    //血条图片
     @Override
     @SideOnly(Side.CLIENT)
     public ResourceLocation getBossBarTexture() {
@@ -1040,6 +1037,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     @SideOnly(Side.CLIENT)
     private static Rectangle hpBarRect;
 
+    //血条背景
     @Override
     @SideOnly(Side.CLIENT)
     public Rectangle getBossBarTextureRect() {
@@ -1048,6 +1046,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         return barRect;
     }
 
+    //血条尺寸
     @Override
     @SideOnly(Side.CLIENT)
     public Rectangle getBossBarHPTextureRect() {
@@ -1055,6 +1054,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
             hpBarRect = new Rectangle(0, barRect.y + barRect.height, 181, 7);
         return hpBarRect;
     }
+
 
     @Override
     @SideOnly(Side.CLIENT)
@@ -1064,6 +1064,35 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         int py = y + 12;
 
         Minecraft mc = Minecraft.getMinecraft();
+
+        int shieldLayers = this.getShield();
+
+        if (shieldLayers > 0) {
+            ItemStack shieldStack = new ItemStack(Items.IRON_CHESTPLATE);
+
+            GlStateManager.pushMatrix();
+
+            // 在凋零头左侧绘制护盾图标
+            int shieldX = px - 25; // 护盾在凋零头左侧
+            mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
+            net.minecraft.client.renderer.RenderHelper.enableGUIStandardItemLighting();
+            GlStateManager.enableRescaleNormal();
+            mc.getRenderItem().renderItemIntoGUI(shieldStack, shieldX, py);
+            net.minecraft.client.renderer.RenderHelper.disableStandardItemLighting();
+
+            boolean unicode = mc.fontRenderer.getUnicodeFlag();
+            mc.fontRenderer.setUnicodeFlag(true);
+
+            int shieldColor = 0x00FF00; // 绿色
+
+            mc.fontRenderer.drawStringWithShadow("" + shieldLayers, shieldX + 15, py + 4, shieldColor);
+            mc.fontRenderer.setUnicodeFlag(unicode);
+
+            GlStateManager.popMatrix();
+
+            px += 20; // 向右移动凋零头
+        }
+
         ItemStack stack = new ItemStack(Items.SKULL, 1, 3);
         mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
         net.minecraft.client.renderer.RenderHelper.enableGUIStandardItemLighting();
@@ -1075,6 +1104,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         mc.fontRenderer.setUnicodeFlag(true);
         mc.fontRenderer.drawStringWithShadow("" + playerCount, px + 15, py + 4, 0xFFFFFF);
         mc.fontRenderer.setUnicodeFlag(unicode);
+
         GlStateManager.popMatrix();
 
         return 5;
