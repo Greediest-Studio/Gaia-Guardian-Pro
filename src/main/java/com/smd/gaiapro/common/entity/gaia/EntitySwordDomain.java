@@ -1,4 +1,4 @@
-package com.smd.gaiapro.common.entity;
+package com.smd.gaiapro.common.entity.gaia;
 
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +22,7 @@ import net.minecraft.world.World;
 import vazkii.botania.common.Botania;
 import vazkii.botania.common.core.helper.Vector3;
 
+//剑领域
 public class EntitySwordDomain extends Entity{
 
     private static final String TAG_SOURCE = "source";

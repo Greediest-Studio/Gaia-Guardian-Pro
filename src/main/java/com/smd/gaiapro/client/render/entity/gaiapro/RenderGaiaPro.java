@@ -4,14 +4,15 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-import com.meteor.extrabotany.ExtraBotany;
-import com.meteor.extrabotany.client.ClientProxy;
 import com.meteor.extrabotany.client.lib.LibResource;
 import com.meteor.extrabotany.common.core.config.ConfigHandler;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
+import com.smd.gaiapro.GaiaPro;
+import com.smd.gaiapro.proxy.ClientProxy;
+import net.minecraft.client.resources.DefaultPlayerSkin;
 
-import com.smd.gaiapro.common.entity.EntityGaiaPro;
+import com.smd.gaiapro.common.entity.gaia.EntityGaiaPro;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.ModelPlayer;
 import net.minecraft.client.renderer.entity.RenderBiped;
@@ -37,30 +38,20 @@ public class RenderGaiaPro extends RenderBiped<EntityGaiaPro> {
     @Nonnull
     @Override
     public ResourceLocation getEntityTexture(@Nonnull EntityGaiaPro entity) {
-        String customName = entity.getCustomNameTag();
-
-        if (customName != null && !customName.isEmpty() && !customName.trim().isEmpty()) {
-            try {
-                ExtraBotany.proxy.preloadSkin(new GameProfile(null, customName));
-                Map<MinecraftProfileTexture.Type, MinecraftProfileTexture> map = Minecraft.getMinecraft().getSkinManager()
-                        .loadSkinFromCache(new GameProfile(null, customName));
-
-                if (map.containsKey(MinecraftProfileTexture.Type.SKIN)) {
-                    ResourceLocation skinLocation = Minecraft.getMinecraft().getSkinManager()
-                            .loadSkin(map.get(MinecraftProfileTexture.Type.SKIN), MinecraftProfileTexture.Type.SKIN);
-                    if (skinLocation != null) {
-                        return skinLocation;
-                    }
-                }
-            } catch (Exception e) {
-                // 捕获异常，防止皮肤加载失败导致渲染崩溃
-                ExtraBotany.logger.warn("Failed to load custom skin for GaiaPro: " + customName, e);
+        ResourceLocation resourceLocation = DefaultPlayerSkin.getDefaultSkinLegacy();
+        if (new GameProfile(null, entity.getCustomNameTag()) != null) {
+            GaiaPro.proxy.preloadSkin(new GameProfile(null, entity.getCustomNameTag()));
+            Map<MinecraftProfileTexture.Type, MinecraftProfileTexture> map = Minecraft.getMinecraft().getSkinManager()
+                    .loadSkinFromCache(new GameProfile(null, entity.getCustomNameTag()));
+            if (map.containsKey(MinecraftProfileTexture.Type.SKIN)) {
+                resourceLocation = Minecraft.getMinecraft().getSkinManager()
+                        .loadSkin(map.get(MinecraftProfileTexture.Type.SKIN), MinecraftProfileTexture.Type.SKIN);
             }
         }
-
-        if (ClientProxy.halloween && ConfigHandler.ENABLE_FEATURES) {
+        if (resourceLocation != null)
+            return resourceLocation;
+        if (ClientProxy.halloween && ConfigHandler.ENABLE_FEATURES)
             return new ResourceLocation(LibResource.GAIAIII_PUMPKIN);
-        }
         return GAIA_TEXTURES;
     }
 }

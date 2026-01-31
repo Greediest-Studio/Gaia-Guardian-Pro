@@ -1,26 +1,21 @@
 package com.smd.gaiapro.client.render.entity.gaiapro;
 
+import com.meteor.extrabotany.client.ClientProxy;
+import com.meteor.extrabotany.client.lib.LibResource;
 
-import com.smd.gaiapro.common.entity.gaia.EntityMinion;
+
+import com.smd.gaiapro.common.entity.gaia.EntityMissile;
 import net.minecraft.client.model.ModelSkeletonHead;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
-@SideOnly(Side.CLIENT)
-public class RenderMinion extends Render<EntityMinion>{
+public class RenderMissile extends Render<EntityMissile>{
 
-    private static final ResourceLocation SKULL_TEXTURES = new ResourceLocation("extrabotany:textures/entity/skullminion1.png");
-    private static final ResourceLocation SKULL_TEXTURES2 = new ResourceLocation("extrabotany:textures/entity/skullminion2.png");
-    private static final ResourceLocation SKULL_TEXTURES3 = new ResourceLocation("extrabotany:textures/entity/skullminion3.png");
-    private static final ResourceLocation SKULL_TEXTURES4 = new ResourceLocation("extrabotany:textures/entity/skullminion4.png");
+    private final ModelSkeletonHead skeletonHeadModel = new ModelSkeletonHead();
 
-    private final static ModelSkeletonHead skeletonHeadModel = new ModelSkeletonHead();
-
-    public RenderMinion(RenderManager renderManagerIn){
+    public RenderMissile(RenderManager renderManagerIn){
         super(renderManagerIn);
     }
 
@@ -38,7 +33,7 @@ public class RenderMinion extends Render<EntityMinion>{
         return p_82400_1_ + p_82400_3_ * f;
     }
 
-    public void doRender(EntityMinion entity, double x, double y, double z, float entityYaw, float partialTicks){
+    public void doRender(EntityMissile entity, double x, double y, double z, float entityYaw, float partialTicks){
         GlStateManager.pushMatrix();
         GlStateManager.disableCull();
         float f = this.getRenderYaw(entity.prevRotationYaw, entity.rotationYaw, partialTicks);
@@ -56,6 +51,7 @@ public class RenderMinion extends Render<EntityMinion>{
         }
 
         this.skeletonHeadModel.render(entity, 0.0F, 0.0F, 0.0F, f, f1, 0.0625F);
+        GlStateManager.scale(0.5F, 0.5F, 0.5F);
 
         if (this.renderOutlines){
             GlStateManager.disableOutlineMode();
@@ -66,19 +62,10 @@ public class RenderMinion extends Render<EntityMinion>{
         super.doRender(entity, x, y, z, entityYaw, partialTicks);
     }
 
-    protected ResourceLocation getEntityTexture(EntityMinion entity){
-        switch(entity.getType()){
-            case 0:
-                return SKULL_TEXTURES;
-            case 1:
-                return SKULL_TEXTURES2;
-            case 2:
-                return SKULL_TEXTURES3;
-            case 3:
-                return SKULL_TEXTURES4;
-            default:
-                return SKULL_TEXTURES;
-        }
+    protected ResourceLocation getEntityTexture(EntityMissile entity){
+        if(ClientProxy.halloween)
+            return new ResourceLocation(LibResource.PUMPKIN);
+        return new ResourceLocation(LibResource.MISSILE);
     }
-}
 
+}

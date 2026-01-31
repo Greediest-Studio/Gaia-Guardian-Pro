@@ -1,4 +1,4 @@
-package com.smd.gaiapro.common.entity;
+package com.smd.gaiapro.common.entity.gaia;
 
 import java.awt.*;
 import java.util.List;
@@ -11,8 +11,6 @@ import com.meteor.extrabotany.api.ExtraBotanyAPI;
 import com.meteor.extrabotany.api.entity.IEntityWithShield;
 import com.meteor.extrabotany.common.brew.ModPotions;
 import com.meteor.extrabotany.common.core.config.ConfigHandler;
-import com.meteor.extrabotany.common.entity.gaia.EntitySkullLandmine;
-import com.meteor.extrabotany.common.entity.gaia.EntitySkullMissile;
 import com.smd.gaiapro.gaiapro.Tags;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
@@ -244,7 +242,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                 int z = source.getZ() - 10 + rand.nextInt(20);
                 int y = (int) players.get(rand.nextInt(players.size())).posY;
 
-                EntitySkullLandmine landmine = new EntitySkullLandmine(world);
+                EntityLandmine landmine = new EntityLandmine(world);
                 if (i % 6 == 0)
                     landmine.setType(2);
                 if (i % 5 == 0)
@@ -350,7 +348,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     }
 
     private void spawnMissile(int type) {
-        EntitySkullMissile missile = new EntitySkullMissile(this);
+        EntityMissile missile = new EntityMissile(this);
         missile.setPosition(posX + (Math.random() - 0.5 * 0.1), posY + 1.8 + (Math.random() - 0.5 * 0.1),
                 posZ + (Math.random() - 0.5 * 0.1));
         missile.setDamage(getHardcore() ? 7 : 5);

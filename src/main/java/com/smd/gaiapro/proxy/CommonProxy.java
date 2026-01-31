@@ -1,5 +1,6 @@
 package com.smd.gaiapro.proxy;
 
+import com.mojang.authlib.GameProfile;
 import com.smd.gaiapro.common.entity.ModEntities;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
@@ -17,6 +18,9 @@ public class CommonProxy {
 
     public void init(FMLInitializationEvent event) {
         ModEntities.init();
+    }
+
+    public void preloadSkin(GameProfile customSkin) {
     }
 
 }

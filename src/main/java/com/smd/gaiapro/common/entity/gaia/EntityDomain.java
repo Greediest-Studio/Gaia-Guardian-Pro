@@ -1,4 +1,4 @@
-package com.smd.gaiapro.common.entity;
+package com.smd.gaiapro.common.entity.gaia;
 
 import java.util.List;
 

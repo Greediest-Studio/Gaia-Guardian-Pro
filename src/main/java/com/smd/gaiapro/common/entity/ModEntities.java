@@ -1,6 +1,7 @@
 package com.smd.gaiapro.common.entity;
 
 import com.smd.gaiapro.GaiaPro;
+import com.smd.gaiapro.common.entity.gaia.*;
 import com.smd.gaiapro.gaiapro.Tags;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.EntityRegistry;
@@ -17,6 +18,12 @@ public class ModEntities {
                 id++, GaiaPro.instance, 64, 10, true);
         EntityRegistry.registerModEntity(makeName("domain"), EntityDomain.class, Tags.MOD_ID + ":domain", id++,
                 GaiaPro.instance, 64, 10, true);
+        EntityRegistry.registerModEntity(makeName("skullmissile"), EntityMissile.class, Tags.MOD_ID + ":skullmissile",
+                id++, GaiaPro.instance, 64, 10, true);
+        EntityRegistry.registerModEntity(makeName("subspacelance"), EntitySubspaceLance.class,
+                Tags.MOD_ID + ":subspacelance", id++, GaiaPro.instance, 64, 10, true);
+        EntityRegistry.registerModEntity(makeName("landmine"), EntityLandmine.class,
+                Tags.MOD_ID + ":landmine", id++, GaiaPro.instance, 64, 10, true);
     }
 
     private static ResourceLocation makeName(String s) {

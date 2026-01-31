@@ -4,7 +4,7 @@ import java.util.Random;
 
 import javax.annotation.Nonnull;
 
-import com.smd.gaiapro.common.entity.EntityDomain;
+import com.smd.gaiapro.common.entity.gaia.EntityDomain;
 import org.lwjgl.opengl.GL11;
 
 import net.minecraft.client.Minecraft;
@@ -18,6 +18,7 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.ResourceLocation;
 import vazkii.botania.client.core.helper.ShaderHelper;
 
+//领域图片
 public class RenderDomain extends Render<EntityDomain> {
 
     private static final ResourceLocation flowerweapon = new ResourceLocation("extrabotany:textures/misc/flowerweapon.png");

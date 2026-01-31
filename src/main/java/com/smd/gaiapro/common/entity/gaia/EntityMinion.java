@@ -1,8 +1,6 @@
-package com.smd.gaiapro.common.entity;
+package com.smd.gaiapro.common.entity.gaia;
 
 import com.meteor.extrabotany.api.entity.IEntityWithShield;
-import com.meteor.extrabotany.common.core.config.ConfigHandler;
-import com.meteor.extrabotany.common.entity.gaia.EntitySkullMissile;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.EntityAISwimming;
@@ -23,6 +21,7 @@ import vazkii.botania.common.core.handler.ModSounds;
 import javax.annotation.Nonnull;
 import java.util.List;
 
+//辅助攻击生物
 public class EntityMinion extends EntityLiving implements IEntityWithShield {
 
     private static final String TAG_TYPE = "type";
@@ -100,7 +99,7 @@ public class EntityMinion extends EntityLiving implements IEntityWithShield {
     }
 
     private void spawnMissile() {
-        EntitySkullMissile missile = new EntitySkullMissile(this);
+        EntityMissile missile = new EntityMissile(this);
         missile.setPosition(posX + (Math.random() - 0.5 * 0.1), posY + 1.8 + (Math.random() - 0.5 * 0.1), posZ + (Math.random() - 0.5 * 0.1));
         missile.setDamage(1);
         missile.setFire(true);

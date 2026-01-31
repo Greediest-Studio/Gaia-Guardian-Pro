@@ -1,26 +1,24 @@
 package com.smd.gaiapro.client.render.entity.gaiapro;
 
+import com.meteor.extrabotany.client.ClientProxy;
+import com.meteor.extrabotany.client.lib.LibResource;
 
-import com.smd.gaiapro.common.entity.gaia.EntityMinion;
+import com.smd.gaiapro.common.entity.gaia.EntityLandmine;
 import net.minecraft.client.model.ModelSkeletonHead;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
-@SideOnly(Side.CLIENT)
-public class RenderMinion extends Render<EntityMinion>{
+public class RenderLandmine extends Render<EntityLandmine>{
 
-    private static final ResourceLocation SKULL_TEXTURES = new ResourceLocation("extrabotany:textures/entity/skullminion1.png");
-    private static final ResourceLocation SKULL_TEXTURES2 = new ResourceLocation("extrabotany:textures/entity/skullminion2.png");
-    private static final ResourceLocation SKULL_TEXTURES3 = new ResourceLocation("extrabotany:textures/entity/skullminion3.png");
-    private static final ResourceLocation SKULL_TEXTURES4 = new ResourceLocation("extrabotany:textures/entity/skullminion4.png");
+    private static final ResourceLocation SKULL_TEXTURES = new ResourceLocation("extrabotany:textures/entity/skulllandmine.png");
+    private static final ResourceLocation SKULL_TEXTURES2 = new ResourceLocation("extrabotany:textures/entity/skulllandmine2.png");
+    private static final ResourceLocation SKULL_TEXTURES3 = new ResourceLocation("extrabotany:textures/entity/skulllandmine3.png");
 
-    private final static ModelSkeletonHead skeletonHeadModel = new ModelSkeletonHead();
+    private final ModelSkeletonHead skeletonHeadModel = new ModelSkeletonHead();
 
-    public RenderMinion(RenderManager renderManagerIn){
+    public RenderLandmine(RenderManager renderManagerIn){
         super(renderManagerIn);
     }
 
@@ -38,7 +36,7 @@ public class RenderMinion extends Render<EntityMinion>{
         return p_82400_1_ + p_82400_3_ * f;
     }
 
-    public void doRender(EntityMinion entity, double x, double y, double z, float entityYaw, float partialTicks){
+    public void doRender(EntityLandmine entity, double x, double y, double z, float entityYaw, float partialTicks){
         GlStateManager.pushMatrix();
         GlStateManager.disableCull();
         float f = this.getRenderYaw(entity.prevRotationYaw, entity.rotationYaw, partialTicks);
@@ -66,19 +64,8 @@ public class RenderMinion extends Render<EntityMinion>{
         super.doRender(entity, x, y, z, entityYaw, partialTicks);
     }
 
-    protected ResourceLocation getEntityTexture(EntityMinion entity){
-        switch(entity.getType()){
-            case 0:
-                return SKULL_TEXTURES;
-            case 1:
-                return SKULL_TEXTURES2;
-            case 2:
-                return SKULL_TEXTURES3;
-            case 3:
-                return SKULL_TEXTURES4;
-            default:
-                return SKULL_TEXTURES;
-        }
+    protected ResourceLocation getEntityTexture(EntityLandmine entity){
+        return entity.getType() == 2 ? ClientProxy.halloween ?  new ResourceLocation(LibResource.PUMPKIN) : SKULL_TEXTURES3 : entity.getType() == 1 ? SKULL_TEXTURES2 : SKULL_TEXTURES;
     }
 }
 

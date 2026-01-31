@@ -2,7 +2,7 @@ package com.smd.gaiapro.client.render.entity.gaiapro;
 
 import javax.annotation.Nonnull;
 
-import com.smd.gaiapro.common.entity.EntitySwordDomain;
+import com.smd.gaiapro.common.entity.gaia.EntitySwordDomain;
 import org.lwjgl.opengl.GL11;
 
 import com.meteor.extrabotany.client.core.handler.MiscellaneousIcons;
@@ -19,6 +19,7 @@ import net.minecraft.util.ResourceLocation;
 import vazkii.botania.client.core.helper.IconHelper;
 import vazkii.botania.client.core.helper.ShaderHelper;
 
+//领域剑的图片
 public class RenderSwordDomain extends Render<EntitySwordDomain> {
 
     public RenderSwordDomain(RenderManager renderManager) {

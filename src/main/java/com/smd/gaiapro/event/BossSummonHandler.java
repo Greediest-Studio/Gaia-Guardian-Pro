@@ -2,7 +2,7 @@ package com.smd.gaiapro.event;
 
 import com.meteor.extrabotany.common.brew.ModPotions;
 import com.meteor.extrabotany.common.core.config.ConfigHandler;
-import com.smd.gaiapro.common.entity.EntityGaiaPro;
+import com.smd.gaiapro.common.entity.gaia.EntityGaiaPro;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
