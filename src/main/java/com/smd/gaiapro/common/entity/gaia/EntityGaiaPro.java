@@ -70,7 +70,16 @@ import vazkii.botania.common.network.PacketHandler;
 public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntityWithShield, IEntityAdditionalSpawnData {
 
     public static final float ARENA_RANGE = 12F;
-    private static final float MAX_HP = 300F;
+    private static final float MAX_HP = 640F;
+    private static final int SPAWN_TICKS = 160;
+
+    private static final int MOB_SPAWN_START_TICKS = 20;
+    private static final int MOB_SPAWN_END_TICKS = 80;
+    private static final int MOB_SPAWN_BASE_TICKS = 800;
+    private static final int MOB_SPAWN_TICKS = MOB_SPAWN_BASE_TICKS + MOB_SPAWN_START_TICKS + MOB_SPAWN_END_TICKS;
+    private static final int MOB_SPAWN_WAVES = 10;
+    private static final int MOB_SPAWN_WAVE_TIME = MOB_SPAWN_BASE_TICKS / MOB_SPAWN_WAVES;
+
 
     private static final String TAG_INVUL_TIME = "invulTime";
     private static final String TAG_AGGRO = "aggro";
@@ -108,6 +117,8 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     private final BossInfoServer bossInfo = (BossInfoServer) new BossInfoServer(
             new TextComponentTranslation("entity." + LibEntityNames.DOPPLEGANGER_REGISTRY + ".name"),
             BossInfo.Color.PINK, BossInfo.Overlay.PROGRESS).setCreateFog(true);;
+
+    private int mobSpawnTicks = 0;
     private UUID bossInfoUUID = bossInfo.getUniqueId();
     private int playerCount = 0;
     private boolean hardMode = false;
@@ -130,20 +141,20 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     }
 
     @Override
-    public void setHealth(float health) {
-        super.setHealth(Math.max(health, getHealth() - 30F));
-    }
-
-    @Override
     public void onLivingUpdate() {
         super.onLivingUpdate();
 
-        if (this.ticksExisted < 60)
-            return;
+        int invul = getInvulTime();
 
-        for (EntityPlayer player : getPlayersAround()) {
-            this.faceEntity(player, 360F, 360F);
-            break;
+        if(invul > 0 && mobSpawnTicks == MOB_SPAWN_TICKS) { // 无敌且未进入召唤阶段
+            if(invul < SPAWN_TICKS) {
+
+                if(invul > SPAWN_TICKS / 2 && world.rand.nextInt(SPAWN_TICKS - invul + 1) == 0)
+                    for(int i = 0; i < 2; i++) spawnExplosionParticle();
+            }
+            setHealth(getHealth() + (getMaxHealth() - 1F) / SPAWN_TICKS);
+            setInvulTime(invul - 1);
+            motionY = 0;
         }
 
         for (EntityPlayer player : getPlayersAround())
@@ -427,9 +438,10 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
             e.playerCount = playerCount;
             e.getAttributeMap().getAttributeInstance(SharedMonsterAttributes.MAX_HEALTH)
                     .setBaseValue(MAX_HP * playerCount);
-            if (hard)
-                e.getAttributeMap().getAttributeInstance(SharedMonsterAttributes.ARMOR).setBaseValue(15);
-            e.setHealth(e.getMaxHealth());
+            e.getAttributeMap().getAttributeInstance(SharedMonsterAttributes.ARMOR).setBaseValue(15);
+            e.setHealth(1F);
+            e.setInvulTime(SPAWN_TICKS);
+            e.mobSpawnTicks = MOB_SPAWN_TICKS;
             e.setCustomNameTag(player.getGameProfile().getName());
             e.playSound(SoundEvents.ENTITY_ENDERDRAGON_GROWL, 10F, 0.1F);
             e.onInitialSpawn(world.getDifficultyForLocation(new BlockPos(e)), null);
