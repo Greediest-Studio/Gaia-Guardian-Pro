@@ -216,7 +216,32 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         //
         int invul = getInvulTime();
 
+        //boss血条
         bossInfo.setPercent(getHealth() / getMaxHealth());
+
+        //禁止飞行
+        if (world.isRemote) {
+            particles();
+            EntityPlayer player = Botania.proxy.getClientPlayer();
+            if (getPlayersAround().contains(player))
+                player.capabilities.isFlying = player.capabilities.isFlying && player.capabilities.isCreativeMode;
+            return;
+        }
+
+        List<EntityPlayer> players = getPlayersAround();
+
+        //玩家离场处理，如果没离场就持续清理玩家buff并上降低治疗量的buff
+        if (players.isEmpty() && !world.playerEntities.isEmpty())
+            setDead();
+        else {
+            for (EntityPlayer player : players) {
+                clearPotions(player);
+                keepInsideArena(player);
+                player.capabilities.isFlying = player.capabilities.isFlying && player.capabilities.isCreativeMode;
+                int potionLevel = 0 + (getRankIII() ? 2 : 0) + this.ticksExisted >= 1800 ? 2 : 0;
+                player.addPotionEffect(new PotionEffect(ModPotions.witchcurse, 200, potionLevel));
+            }
+        }
 
         if (invul > 0) {
             if (invul < SPAWN_TICKS) {
@@ -257,14 +282,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
 
             BlockPos source = getSource();
 
-            if (world.isRemote) {
-                particles();
-                EntityPlayer player = Botania.proxy.getClientPlayer();
-                if (getPlayersAround().contains(player))
-                    player.capabilities.isFlying = player.capabilities.isFlying && player.capabilities.isCreativeMode;
-                return;
-            }
-
             if (isRiding())
                 dismountRidingEntity();
 
@@ -272,9 +289,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                 setDead();
 
             smashCheatyBlocks();
-
-            List<EntityPlayer> players = getPlayersAround();
-
 
             if (isDead)
                 return;
@@ -373,19 +387,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
             if (tpDelay == 0 && getHealth() > 0) {
                 teleportRandomly();
                 tpDelay = getRankIII() ? 85 : 100;
-            }
-
-            //玩家离场处理，如果没离场就持续清理玩家buff并上降低治疗量的buff
-            if (players.isEmpty() && !world.playerEntities.isEmpty())
-                setDead();
-            else {
-                for (EntityPlayer player : players) {
-                    clearPotions(player);
-                    keepInsideArena(player);
-                    player.capabilities.isFlying = player.capabilities.isFlying && player.capabilities.isCreativeMode;
-                    int potionLevel = 0 + (getRankIII() ? 2 : 0) + this.ticksExisted >= 1800 ? 2 : 0;
-                    player.addPotionEffect(new PotionEffect(ModPotions.witchcurse, 200, potionLevel));
-                }
             }
         }
     }
@@ -567,6 +568,11 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     //受伤传送+限伤+挨打拉回玩家
     @Override
     public boolean attackEntityFrom(@Nonnull DamageSource source, float par2) {
+
+        if(par2 > 30) {
+            par2 = 30;
+        }
+
         Entity e = source.getTrueSource();
 
         if (e instanceof EntityPlayer && isTruePlayer(e)) {
@@ -579,19 +585,17 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                     getSource().getX(), getSource().getZ()) > ARENA_RANGE)
                 player.attemptTeleport(getSource().getX(), getSource().getY(), getSource().getZ());
 
-            int cap = 30;
-
             if (this.cd > 160)
                 this.cd -= 10;
 
-            this.setDamageTaken(getDamageTaken() + Math.min(cap, par2));
+            this.setDamageTaken(getDamageTaken() + par2);
             if(getDamageTaken() >= 80F) {
                 setDamageTaken(0);
                 teleportRandomly();
                 this.tpDelay = 80;
             }
 
-            return super.attackEntityFrom(source, Math.min(cap, par2));
+            return super.attackEntityFrom(source, par2);
         }
 
         return false;
