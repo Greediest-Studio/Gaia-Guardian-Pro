@@ -102,7 +102,7 @@ public class EntityMinion extends EntityLiving implements IEntityWithShield {
         EntityMissile missile = new EntityMissile(this);
         missile.setPosition(posX + (Math.random() - 0.5 * 0.1), posY + 1.8 + (Math.random() - 0.5 * 0.1), posZ + (Math.random() - 0.5 * 0.1));
         missile.setDamage(1);
-        missile.setFire(true);
+        missile.setPerplexity(true);
         playSound(ModSounds.missile, 0.6F, 0.8F + (float) Math.random() * 0.2F);
         world.spawnEntity(missile);
     }

@@ -5,6 +5,7 @@ import javax.annotation.Nonnull;
 
 import com.meteor.extrabotany.api.ExtraBotanyAPI;
 import com.meteor.extrabotany.common.core.config.ConfigHandler;
+import com.smd.gaiapro.potion.ModPotion;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.player.EntityPlayer;
@@ -71,10 +72,11 @@ public class EntityLandmine extends Entity{
                     float amplifier = 1.0F;
                     player.attackEntityFrom(DamageSource.causeIndirectMagicDamage(this, summoner), 6 * amplifier);
                     if(getType() == 1){
-                        ExtraBotanyAPI.dealTrueDamage(this.summoner, player, (player.getMaxHealth() * 0.30F + 8) * amplifier);
+                        player.addPotionEffect(new PotionEffect(ModPotion.NoJump, 160, 0));
                     }
-                    if(getType() == 2 && ConfigHandler.GAIA_DISARM)
-                        player.dropItem(true);
+                    if(getType() == 2){
+                        player.addPotionEffect(new PotionEffect(ModPotion.Forst, 40, 0));
+                    }
                     player.addPotionEffect(new PotionEffect(MobEffects.BLINDNESS, 25, 0));
                     player.addPotionEffect(new PotionEffect(MobEffects.SLOWNESS, 50, 3));
                     PotionEffect wither = new PotionEffect(MobEffects.WITHER, 150, 1);

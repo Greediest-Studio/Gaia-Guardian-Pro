@@ -1,8 +1,8 @@
 package com.smd.gaiapro.event;
 
-import com.meteor.extrabotany.common.brew.ModPotions;
 import com.meteor.extrabotany.common.core.config.ConfigHandler;
 import com.smd.gaiapro.common.entity.gaia.EntityGaiaPro;
+import com.smd.gaiapro.potion.ModPotion;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
@@ -38,7 +38,7 @@ public class BossSummonHandler {
 
                     if (!player.capabilities.isCreativeMode) {
                         stack.shrink(1);
-                        player.addPotionEffect(new PotionEffect(ModPotions.witchcurse, 200, 0));
+                        player.addPotionEffect(new PotionEffect(ModPotion.GaiaSpawn, 200, 0));
                     }
 
                     event.setCanceled(true);
@@ -59,7 +59,7 @@ public class BossSummonHandler {
         BlockPos pos = event.getPos();
         EntityPlayer player = event.getEntityPlayer();
 
-        if ((world.getTileEntity(pos) instanceof TileEntityBeacon) && player.isPotionActive(ModPotions.witchcurse)){
+        if ((world.getTileEntity(pos) instanceof TileEntityBeacon) && player.isPotionActive(ModPotion.GaiaSpawn)){
             event.setCanceled(true);
             event.setResult(Event.Result.ALLOW);
         }

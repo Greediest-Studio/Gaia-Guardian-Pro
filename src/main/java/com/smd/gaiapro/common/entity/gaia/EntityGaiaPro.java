@@ -9,9 +9,9 @@ import javax.annotation.Nonnull;
 
 import com.meteor.extrabotany.api.ExtraBotanyAPI;
 import com.meteor.extrabotany.api.entity.IEntityWithShield;
-import com.meteor.extrabotany.common.brew.ModPotions;
 import com.meteor.extrabotany.common.core.config.ConfigHandler;
 import com.smd.gaiapro.gaiapro.Tags;
+import com.smd.gaiapro.potion.ModPotion;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -230,7 +230,6 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
 
         List<EntityPlayer> players = getPlayersAround();
 
-        //玩家离场处理，如果没离场就持续清理玩家buff并上降低治疗量的buff
         if (players.isEmpty() && !world.playerEntities.isEmpty())
             setDead();
         else {
@@ -238,8 +237,22 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                 clearPotions(player);
                 keepInsideArena(player);
                 player.capabilities.isFlying = player.capabilities.isFlying && player.capabilities.isCreativeMode;
-                int potionLevel = 0 + (getRankIII() ? 2 : 0) + this.ticksExisted >= 1800 ? 2 : 0;
-                player.addPotionEffect(new PotionEffect(ModPotions.witchcurse, 200, potionLevel));
+                player.addPotionEffect(new PotionEffect(ModPotion.GaiaSpawn, 200));
+
+                if (world.getTotalWorldTime() % 5 == 0 && getDistanceSqToPlayer(player) > 16F) {
+
+                    if(player.isPotionActive(ModPotion.GaiaSpawn)){
+
+                        if (!player.isDead) {
+                            float damageAmount = player.getMaxHealth() * 0.005F;
+                            float newHealth = player.getHealth() - damageAmount;
+                            newHealth = Math.max(newHealth, 0.0F);
+
+                            player.setHealth(newHealth);
+                        }
+                    }
+
+                }
             }
         }
 
@@ -278,6 +291,28 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                     if (world.isRemote)
                         player.sendMessage(new TextComponentTranslation("extrabotanymisc.minionSpawn")
                                 .setStyle(new Style().setColor(TextFormatting.WHITE)));
+            }
+
+            if (!getRankII() && (getHealth() <= getMaxHealth() * 0.80F)) {
+                setRankII(true);
+                setShield(5);
+                spawnDivineJudge();
+                setShield(1);
+                for (int i = 0; i < 2; i++) {
+                    spawnSubspaceLanceRandomly();
+                }
+            }
+
+            if (!getRankIII()
+                    && (getHealth() <= getMaxHealth() * 0.25F)) {
+                setRankIII(true);
+                setShield(3);
+                for (int i = 0; i < 4; i++) {
+                    spawnSubspaceLanceRandomly();
+                }
+                if (playersWhoAttacked.size() > 0) {
+                    this.setHealth(this.getMaxHealth());
+                }
             }
 
             BlockPos source = getSource();
@@ -319,7 +354,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
 
             int base = 10 + playerCount * 4;
             int count = getRankIII() ? base + 9 : getRankII() ? base + 5 : base;
-            if (ticksExisted > 200 && ticksExisted % (getRankIII() ? 170 : getRankII() ? 210 : 250) == 0)
+            if (ticksExisted > 200 && ticksExisted % (getRankIII() ? 150 : getRankII() ? 200 : 250) == 0)
                 for (int i = 0; i < count; i++) {
                     int x = source.getX() - 10 + rand.nextInt(20);
                     int z = source.getZ() - 10 + rand.nextInt(20);
@@ -370,13 +405,13 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                 if (ConfigHandler.GAIA_DIVINEJUDGE)
                     spawnDivineJudge();
                 else
-                    spawnMinion();
+                    spawnSubspaceLanceRandomly();
                 cd = 320;
                 skillType = getRankIII() ? 3 : 0;
             }
 
             if (cd == 0 && !world.isRemote && skillType == 3) {
-                spawnMinion();
+                spawnSubspaceLanceRandomly();
                 cd = 360;
                 skillType = world.rand.nextInt(1);
             }
@@ -429,14 +464,17 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         EntityMissile missile = new EntityMissile(this);
         missile.setPosition(posX + (Math.random() - 0.5 * 0.1), posY + 1.8 + (Math.random() - 0.5 * 0.1),
                 posZ + (Math.random() - 0.5 * 0.1));
-        missile.setDamage(getHardcore() ? 7 : 5);
+        missile.setDamage(7);
         missile.setTrueDamage(2);
         if (type > 0) {
             missile.setFire(true);
         }
         if (type > 1) {
             missile.setEffect(true);
-            missile.setTrueDamage(getHardcore() ? 4 : 3);
+            missile.setTrueDamage(4);
+        }
+        if (type > 2) {
+            missile.setPerplexity(true);
         }
         if (missile.findTarget()) {
             if (type > 2) {
@@ -752,6 +790,25 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                         -0.075F - (float) Math.random() * 0.015F);
                 Botania.proxy.wispFX(partPos.x, partPos.y, partPos.z, r, g, b, 0.4F, (float) mot.x, (float) mot.y,
                         (float) mot.z);
+            }
+        }
+
+        if (getInvulTime() == 0) {
+            float radius = 4.0F;
+            int steps = 32;
+            double yOffset = 0.2;
+            for (int i = 0; i < steps; i++) {
+                float rad = (float) (i * 2 * Math.PI / steps);
+                double x = posX + Math.cos(rad) * radius;
+                double y = posY + yOffset;
+                double z = posZ + Math.sin(rad) * radius;
+
+                Botania.proxy.wispFX(x, y, z,
+                        1.0F, 0.2F, 0.2F,
+                        0.3F,
+                        (float) (Math.random() - 0.5F) * 0.05F,
+                        (float) Math.random() * 0.05F,
+                        (float) (Math.random() - 0.5F) * 0.05F);
             }
         }
     }
@@ -1209,6 +1266,31 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
             }
 
         return trippedPositions;
+    }
+
+    private void spawnSubspaceLanceRandomly() {
+        double newX = source.getX() + (rand.nextDouble() - .5) * ARENA_RANGE;
+        double newY = getRankII() ? source.getY() + 2F : source.getY();
+        double newZ = source.getZ() + (rand.nextDouble() - .5) * ARENA_RANGE;
+        spawnSubspaceLance(new BlockPos(newX, newY, newZ));
+    }
+
+    private void spawnSubspaceLance(BlockPos pos) {
+        EntitySubspaceLance lance = new EntitySubspaceLance(world, this);
+        lance.setLife(1200);
+        lance.setPitch(-90F);
+        lance.setPosition(pos.getX(), pos.getY() + 12F, pos.getZ());
+        if (!world.isRemote)
+            world.spawnEntity(lance);
+    }
+
+    /**
+     * 获取此 Boss 与指定玩家之间的平方距离（性能更好，常用于范围判断）
+     * @param player 目标玩家
+     * @return 平方距离
+     */
+    public double getDistanceSqToPlayer(EntityPlayer player) {
+        return this.getDistanceSq(player);
     }
 
 }

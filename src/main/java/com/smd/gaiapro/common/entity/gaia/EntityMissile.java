@@ -6,12 +6,12 @@ import javax.annotation.Nonnull;
 
 import com.meteor.extrabotany.api.ExtraBotanyAPI;
 import com.meteor.extrabotany.api.entity.IBossProjectile;
-import com.meteor.extrabotany.common.core.config.ConfigHandler;
 import com.meteor.extrabotany.common.core.handler.StatHandler;
 
 import com.meteor.extrabotany.common.lib.LibAdvancements;
 
 import com.smd.gaiapro.common.entity.EntityThrowableCopy;
+import com.smd.gaiapro.potion.ModPotion;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockBush;
 import net.minecraft.block.BlockLeaves;
@@ -48,6 +48,7 @@ public class EntityMissile extends EntityThrowableCopy implements IBossProjectil
 
     private static final String TAG_FIRE = "fire";
     private static final String TAG_EFFECT = "effect";
+    private static final String TAG_Perplexity = "perplexity";
     private static final String TAG_DAMAGE = "damage";
     private static final String TAG_TRUEDAMAGE = "truedamage";
     private static final String TAG_TIME = "time";
@@ -57,6 +58,7 @@ public class EntityMissile extends EntityThrowableCopy implements IBossProjectil
     private static final DataParameter<Boolean> EFFECT = EntityDataManager.createKey(EntityMissile.class, DataSerializers.BOOLEAN);
     private static final DataParameter<Boolean> FIRE = EntityDataManager.createKey(EntityMissile.class, DataSerializers.BOOLEAN);
     private static final DataParameter<Integer> TARGET = EntityDataManager.createKey(EntityMissile.class, DataSerializers.VARINT);
+    private static final DataParameter<Boolean> Perplexity = EntityDataManager.createKey(EntityMissile.class, DataSerializers.BOOLEAN);
 
     @Override
     protected void entityInit() {
@@ -76,6 +78,7 @@ public class EntityMissile extends EntityThrowableCopy implements IBossProjectil
         cmp.setFloat(TAG_TRUEDAMAGE, getTrueDamage());
         cmp.setBoolean(TAG_EFFECT, getEffect());
         cmp.setBoolean(TAG_FIRE, getFire());
+        cmp.setBoolean(TAG_Perplexity, getPerplexity());
     }
 
     @Override
@@ -86,6 +89,7 @@ public class EntityMissile extends EntityThrowableCopy implements IBossProjectil
         setTrueDamage(cmp.getFloat(TAG_TRUEDAMAGE));
         setFire(cmp.getBoolean(TAG_FIRE));
         setEffect(cmp.getBoolean(TAG_EFFECT));
+        setPerplexity(cmp.getBoolean(TAG_Perplexity));
     }
 
     public float getDamage() {
@@ -105,11 +109,15 @@ public class EntityMissile extends EntityThrowableCopy implements IBossProjectil
     }
 
     public void setFire(boolean b) {
-        dataManager.set(FIRE, b);;
+        dataManager.set(FIRE, b);
     }
 
     public void setEffect(boolean b) {
-        dataManager.set(EFFECT, b);;
+        dataManager.set(EFFECT, b);
+    }
+
+    public void setPerplexity(boolean b) {
+        dataManager.set(EFFECT, b);
     }
 
     public boolean getFire(){
@@ -117,6 +125,10 @@ public class EntityMissile extends EntityThrowableCopy implements IBossProjectil
     }
 
     public boolean getEffect(){
+        return dataManager.get(EFFECT);
+    }
+
+    public boolean getPerplexity() {
         return dataManager.get(EFFECT);
     }
 
@@ -191,9 +203,9 @@ public class EntityMissile extends EntityThrowableCopy implements IBossProjectil
                 if(getEffect()){
                     target.addPotionEffect(new PotionEffect(MobEffects.WITHER, 200, 1));
                 }
-                float m = 0.35F;
-                for(int i = 0; i < (int)(5 * ConfigHandler.PARTICLE); i++)
-                    Botania.proxy.wispFX(posX, posY + 1, posZ, (float)Math.random(), (float)Math.random(), (float)Math.random(), 0.5F, (float) (Math.random() - 0.5F) * m, (float) (Math.random() - 0.5F) * m, (float) (Math.random() - 0.5F) * m);
+                if(getPerplexity()){
+                    target.addPotionEffect(new PotionEffect(ModPotion.Perplexity,50,0));
+                }
                 setDead();
             }
 
