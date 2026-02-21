@@ -239,7 +239,8 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                 player.capabilities.isFlying = player.capabilities.isFlying && player.capabilities.isCreativeMode;
                 player.addPotionEffect(new PotionEffect(ModPotion.GaiaSpawn, 200));
 
-                if (world.getTotalWorldTime() % 5 == 0 && getDistanceSqToPlayer(player) > 16F) {
+                //光环
+                if (world.getTotalWorldTime() % 5 == 0 && getDistanceSqToPlayer(player) > 9F) {
 
                     if(player.isPotionActive(ModPotion.GaiaSpawn)){
 
@@ -607,6 +608,15 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     @Override
     public boolean attackEntityFrom(@Nonnull DamageSource source, float par2) {
 
+        if (getInvulTime() > 0) {
+            return false;
+        }
+
+        Entity sourceEntity = source.getTrueSource();
+        if (sourceEntity == null || this.getDistance(sourceEntity) > 3.0F) {
+            return false;
+        }
+
         if(par2 > 30) {
             par2 = 30;
         }
@@ -794,7 +804,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         }
 
         if (getInvulTime() == 0) {
-            float radius = 4.0F;
+            float radius = 3.0F;
             int steps = 32;
             double yOffset = 0.2;
             for (int i = 0; i < steps; i++) {
@@ -942,7 +952,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
 
         Random random = getRNG();
 
-        // spawn particles along the path
+        // 场地特效
         int particleCount = 128;
         for (int i = 0; i < particleCount; ++i) {
             double progress = i / (double) (particleCount - 1);

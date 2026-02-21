@@ -10,6 +10,7 @@ import net.minecraft.potion.PotionEffect;
 import net.minecraft.tileentity.TileEntityBeacon;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -62,6 +63,21 @@ public class BossSummonHandler {
         if ((world.getTileEntity(pos) instanceof TileEntityBeacon) && player.isPotionActive(ModPotion.GaiaSpawn)){
             event.setCanceled(true);
             event.setResult(Event.Result.ALLOW);
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerInteractEntity(PlayerInteractEvent.EntityInteract event) {
+        if (event.getTarget() instanceof EntityGaiaPro) {
+            EntityPlayer player = event.getEntityPlayer();
+            ItemStack stack = player.getHeldItem(event.getHand());
+
+            if (stack != null && !stack.isEmpty()) {
+                event.setCanceled(true);
+                if (!event.getWorld().isRemote) {
+                    player.sendMessage(new TextComponentTranslation("message.gaiapro"));
+                }
+            }
         }
     }
 }

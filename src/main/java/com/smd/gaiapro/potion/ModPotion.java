@@ -12,6 +12,7 @@ public class ModPotion {
     public static final Potion GaiaSpawn = new PotionGaiaSpawn();
     public static final Potion NoJump = new PotionNoJump();
     public static final Potion Forst = new PotionForst();
+    public static final Potion Control = new PotionControl();
 
     @SubscribeEvent
     public static void registerPotions(RegistryEvent.Register<Potion> event) {
@@ -19,6 +20,7 @@ public class ModPotion {
         event.getRegistry().register(GaiaSpawn);
         event.getRegistry().register(NoJump);
         event.getRegistry().register(Forst);
+        event.getRegistry().register(Control);
     }
 
 

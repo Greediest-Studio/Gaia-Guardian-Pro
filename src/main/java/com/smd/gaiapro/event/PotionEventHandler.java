@@ -7,6 +7,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.MobEffects;
 import net.minecraft.potion.PotionEffect;
+import net.minecraft.util.MovementInput;
 import net.minecraftforge.client.event.InputUpdateEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
@@ -59,6 +60,19 @@ public class PotionEventHandler {
 
             event.getMovementInput().sneak = false;
 
+        }
+    }
+
+    @SubscribeEvent
+    public static void onControl(InputUpdateEvent event) {
+        EntityPlayerSP player = (EntityPlayerSP) event.getEntityPlayer();
+
+        if (player.isPotionActive(ModPotion.Control)) { // 假设 ModPotion.Reverse 为药水实例
+            MovementInput input = event.getMovementInput();
+            // 反转前进/后退和左右移动
+            input.moveForward = -input.moveForward;
+            input.moveStrafe = -input.moveStrafe;
+            // 潜行、跳跃等行为保持不变
         }
     }
 }
