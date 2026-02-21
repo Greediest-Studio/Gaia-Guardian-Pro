@@ -97,41 +97,6 @@ public class EntitySubspaceLance extends EntityThrowableCopy implements IBossPro
         if (world.isRemote) {
             return;
         }
-
-        double range = 4.0;        // 作用半径
-        double strength = 2.5;     // 固定拉力系数（原Vortex配置值，可自行调整）
-
-        List<EntityPlayer> players = world.getEntitiesWithinAABB(EntityPlayer.class,
-                new AxisAlignedBB(posX - range, posY - range, posZ - range,
-                        posX + range, posY + range, posZ + range));
-
-        for (EntityPlayer player : players) {
-            // 忽略创造/旁观者以及投射者本人
-            if (player.isCreative() || player.isSpectator()) continue;
-            if (player == thrower) continue;
-
-            Vec3d toCenter = new Vec3d(posX - player.posX, posY - player.posY, posZ - player.posZ);
-            double distance = toCenter.length();
-            if (distance < 0.1) continue;
-
-            Vec3d pull = toCenter.normalize().scale(strength);
-            player.motionX += pull.x;
-            player.motionY += pull.y;
-            player.motionZ += pull.z;
-            // ▲▲▲ 替换原 factor 计算与乘法 ▲▲▲
-
-            // 限制最大速度（原代码保留，不动）
-            double maxSpeed = 1.2;
-            double speedSq = player.motionX * player.motionX + player.motionY * player.motionY + player.motionZ * player.motionZ;
-            if (speedSq > maxSpeed * maxSpeed) {
-                double scale = maxSpeed / Math.sqrt(speedSq);
-                player.motionX *= scale;
-                player.motionY *= scale;
-                player.motionZ *= scale;
-            }
-
-            player.velocityChanged = true; // 强制同步客户端（Vortex同样做法）
-        }
     }
 
     /**
