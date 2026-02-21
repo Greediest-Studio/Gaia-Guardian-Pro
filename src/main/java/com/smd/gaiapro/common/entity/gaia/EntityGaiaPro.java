@@ -70,7 +70,7 @@ import vazkii.botania.common.network.PacketHandler;
 public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntityWithShield, IEntityAdditionalSpawnData {
 
     public static final float ARENA_RANGE = 12F;
-    private static final float MAX_HP = 640F;
+    private static final float MAX_HP = 80F;
     private static final int SPAWN_TICKS = 160;
 
     private static final String TAG_INVUL_TIME = "invulTime";
@@ -238,9 +238,12 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                 keepInsideArena(player);
                 player.capabilities.isFlying = player.capabilities.isFlying && player.capabilities.isCreativeMode;
                 player.addPotionEffect(new PotionEffect(ModPotion.GaiaSpawn, 200));
+                if(getRankIII()){
+                    player.addPotionEffect(new PotionEffect(ModPotion.Control, 200));
+                }
 
                 //光环
-                if (world.getTotalWorldTime() % 5 == 0 && getDistanceSqToPlayer(player) > 9F) {
+                if (world.getTotalWorldTime() % 5 == 0 && getDistanceSqToPlayer(player) > 12.25F) {
 
                     if(player.isPotionActive(ModPotion.GaiaSpawn)){
 
@@ -315,6 +318,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                     this.setHealth(this.getMaxHealth());
                 }
             }
+
 
             BlockPos source = getSource();
 
@@ -804,7 +808,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         }
 
         if (getInvulTime() == 0) {
-            float radius = 3.0F;
+            float radius = 3.5F;
             int steps = 32;
             double yOffset = 0.2;
             for (int i = 0; i < steps; i++) {

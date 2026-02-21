@@ -54,7 +54,7 @@ public class EntitySwordDomain extends Entity{
 
     private void keepInsideArena(EntityPlayer player) {
         BlockPos source = getSource();
-        if(vazkii.botania.common.core.helper.MathHelper.pointDistanceSpace(player.posX, player.posY, player.posZ, source.getX() + 0.5, source.getY() + 0.5, source.getZ() + 0.5) >= 3F) {
+        if(vazkii.botania.common.core.helper.MathHelper.pointDistanceSpace(player.posX, player.posY, player.posZ, source.getX() + 0.5, source.getY() + 0.5, source.getZ() + 0.5) >= 3.5F) {
             Vector3 sourceVector = new Vector3(source.getX() + 0.5, source.getY() + 0.5, source.getZ() + 0.5);
             Vector3 playerVector = Vector3.fromEntityCenter(player);
             Vector3 motion = sourceVector.subtract(playerVector).normalize();

@@ -1,20 +1,15 @@
 package com.smd.gaiapro.event;
 
 import com.smd.gaiapro.potion.ModPotion;
-import ibxm.Player;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.MobEffects;
-import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.MovementInput;
 import net.minecraftforge.client.event.InputUpdateEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 @Mod.EventBusSubscriber
 public class PotionEventHandler {
@@ -67,12 +62,12 @@ public class PotionEventHandler {
     public static void onControl(InputUpdateEvent event) {
         EntityPlayerSP player = (EntityPlayerSP) event.getEntityPlayer();
 
-        if (player.isPotionActive(ModPotion.Control)) { // 假设 ModPotion.Reverse 为药水实例
+        if (player.isPotionActive(ModPotion.Control)) {
             MovementInput input = event.getMovementInput();
-            // 反转前进/后退和左右移动
+
             input.moveForward = -input.moveForward;
             input.moveStrafe = -input.moveStrafe;
-            // 潜行、跳跃等行为保持不变
+
         }
     }
 }
