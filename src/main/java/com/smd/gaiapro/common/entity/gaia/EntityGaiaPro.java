@@ -70,7 +70,7 @@ import vazkii.botania.common.network.PacketHandler;
 public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntityWithShield, IEntityAdditionalSpawnData {
 
     public static final float ARENA_RANGE = 12F;
-    private static final float MAX_HP = 80F;
+    private static final float MAX_HP = 640F;
     private static final int SPAWN_TICKS = 160;
 
     private static final String TAG_INVUL_TIME = "invulTime";
