@@ -26,6 +26,9 @@ import net.minecraft.world.World;
  */
 public class EntitySubspaceLance extends EntityThrowableCopy implements IBossProjectile {
 
+    private static final double PULL_RANGE = 5.5D;
+    private static final double PULL_STRENGTH = 0.18D;
+
     private static final String TAG_ROTATION = "rotation";
     private static final String TAG_LIFE = "life";
     private static final String TAG_PITCH = "pitch";
@@ -97,6 +100,10 @@ public class EntitySubspaceLance extends EntityThrowableCopy implements IBossPro
         if (world.isRemote) {
             return;
         }
+
+        if (status == Status.STANDBY) {
+            pullNearbyPlayers();
+        }
     }
 
     /**
@@ -106,6 +113,32 @@ public class EntitySubspaceLance extends EntityThrowableCopy implements IBossPro
         if (this.world.getBlockState(this.getPosition().add(0, -1.9F, 0)).getBlock() != Blocks.AIR)
             return Status.STANDBY;
         return Status.INAIR;
+    }
+
+    private void pullNearbyPlayers() {
+        List<EntityPlayer> players = world.getEntitiesWithinAABB(EntityPlayer.class,
+                new AxisAlignedBB(posX - PULL_RANGE, posY - 2.0D, posZ - PULL_RANGE,
+                        posX + PULL_RANGE, posY + 2.0D, posZ + PULL_RANGE));
+
+        Vec3d center = new Vec3d(posX, posY, posZ);
+        for (EntityPlayer player : players) {
+            if (player.isCreative() || player.isSpectator()) {
+                continue;
+            }
+
+            Vec3d delta = center.subtract(player.getPositionVector());
+            double distance = Math.sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
+            if (distance < 0.25D || distance > PULL_RANGE) {
+                continue;
+            }
+
+            double strength = PULL_STRENGTH * (distance / PULL_RANGE);
+            Vec3d pull = delta.normalize().scale(strength);
+            player.motionX += pull.x;
+            player.motionY += Math.max(0.04D, pull.y + 0.02D);
+            player.motionZ += pull.z;
+            player.velocityChanged = true;
+        }
     }
 
     @Override

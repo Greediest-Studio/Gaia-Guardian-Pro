@@ -81,6 +81,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     private static final String TAG_PLAYER_COUNT = "playerCount";
     private static final String TAG_RANKII = "rank2";
     private static final String TAG_RANKIII = "rank3";
+    private static final String TAG_FINAL_PHASE = "finalPhase";
     private static final String TAG_SHIELD = "shield";
     private static final String TAG_DAMAGETAKEN = "damagetaken";
 
@@ -93,6 +94,8 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     private static final DataParameter<Boolean> RANKII = EntityDataManager.createKey(EntityGaiaPro.class,
             DataSerializers.BOOLEAN);
     private static final DataParameter<Boolean> RANKIII = EntityDataManager.createKey(EntityGaiaPro.class,
+            DataSerializers.BOOLEAN);
+        private static final DataParameter<Boolean> FINAL_PHASE = EntityDataManager.createKey(EntityGaiaPro.class,
             DataSerializers.BOOLEAN);
     private static final DataParameter<Boolean> HARDCORE = EntityDataManager.createKey(EntityGaiaPro.class,
             DataSerializers.BOOLEAN);
@@ -275,48 +278,16 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                 if (!playersWhoAttacked.contains(player.getUniqueID()))
                     playersWhoAttacked.add(player.getUniqueID());
 
-            if (!getRankII() && (getHealth() <= getMaxHealth() * 0.8F)) {
-                setRankII(true);
-                setShield(5);
-                spawnMinion();
-                spawnDivineJudge();
-                for (EntityPlayer player : getPlayersAround())
-                    if (world.isRemote)
-                        player.sendMessage(new TextComponentTranslation("extrabotanymisc.minionSpawn")
-                                .setStyle(new Style().setColor(TextFormatting.WHITE)));
-            }
-            if (!getRankIII()
-                    && (getHealth() <= getMaxHealth() * 0.6F)) {
-                setRankIII(true);
-                setShield(10);
-                spawnMinion();
-                spawnDivineJudge();
-                for (EntityPlayer player : getPlayersAround())
-                    if (world.isRemote)
-                        player.sendMessage(new TextComponentTranslation("extrabotanymisc.minionSpawn")
-                                .setStyle(new Style().setColor(TextFormatting.WHITE)));
+            if (!getRankII() && getHealth() <= getMaxHealth() * 0.8F) {
+                triggerRankII();
             }
 
-            if (!getRankII() && (getHealth() <= getMaxHealth() * 0.80F)) {
-                setRankII(true);
-                setShield(5);
-                spawnDivineJudge();
-                setShield(1);
-                for (int i = 0; i < 2; i++) {
-                    spawnSubspaceLanceRandomly();
-                }
+            if (!getRankIII() && getHealth() <= getMaxHealth() * 0.6F) {
+                triggerRankIII();
             }
 
-            if (!getRankIII()
-                    && (getHealth() <= getMaxHealth() * 0.25F)) {
-                setRankIII(true);
-                setShield(3);
-                for (int i = 0; i < 4; i++) {
-                    spawnSubspaceLanceRandomly();
-                }
-                if (playersWhoAttacked.size() > 0) {
-                    this.setHealth(this.getMaxHealth());
-                }
+            if (!isFinalPhase() && getHealth() <= getMaxHealth() * 0.25F) {
+                triggerFinalPhase();
             }
 
 
@@ -379,28 +350,18 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                 cd--;
 
             if (cd == 250 && skillType == 1)
-                for (EntityPlayer player : getPlayersAround())
-                    if (world.isRemote)
-                        player.sendMessage(new TextComponentTranslation("extrabotanymisc.gaiaPreparing", "Boss")
-                                .setStyle(new Style().setColor(TextFormatting.WHITE)));
+                sendArenaMessage("extrabotanymisc.gaiaPreparing", TextFormatting.WHITE, "Boss");
 
             if (cd == 100 && skillType == 1)
-                for (EntityPlayer player : getPlayersAround())
-                    if (world.isRemote)
-                        player.sendMessage(new TextComponentTranslation("extrabotanymisc.gaiaWarning", "Boss")
-                                .setStyle(new Style().setColor(TextFormatting.RED)));
+                sendArenaMessage("extrabotanymisc.gaiaWarning", TextFormatting.RED, "Boss");
 
             if (cd == 100 && skillType == 0)
-                for (EntityPlayer player : getPlayersAround())
-                    if (world.isRemote)
-                        player.sendMessage(new TextComponentTranslation("extrabotanymisc.gaiaWarning2", "Boss")
-                                .setStyle(new Style().setColor(TextFormatting.RED)));
+                sendArenaMessage("extrabotanymisc.gaiaWarning2", TextFormatting.RED, "Boss");
 
             if (cd == 0 && skillType == 0 && !getPlayersAround().isEmpty()) {
                 EntityPlayer player = getPlayersAround().get(world.rand.nextInt(getPlayersAround().size()));
-                if (world.isRemote)
-                    player.sendMessage(new TextComponentTranslation("extrabotanymisc.gaiaWarning3", "Boss")
-                            .setStyle(new Style().setColor(TextFormatting.RED)));
+                player.sendMessage(new TextComponentTranslation("extrabotanymisc.gaiaWarning3", "Boss")
+                        .setStyle(new Style().setColor(TextFormatting.RED)));
                 ExtraBotanyAPI.dealTrueDamage(this, player, (player.getMaxHealth() * 0.20F + 6));
                 cd = 380;
                 skillType = getRankIII() ? 1 : world.rand.nextInt(2);
@@ -505,6 +466,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         dataManager.register(INVUL_TIME, 0);
         dataManager.register(RANKII, false);
         dataManager.register(RANKIII, false);
+        dataManager.register(FINAL_PHASE, false);
         dataManager.register(HARDCORE, false);
         dataManager.register(SHIELD, 0);
         dataManager.register(DAMAGE_TAKEN, 0F);
@@ -522,12 +484,20 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         return dataManager.get(RANKIII);
     }
 
+    public boolean isFinalPhase() {
+        return dataManager.get(FINAL_PHASE);
+    }
+
     public void setRankII(boolean b) {
         dataManager.set(RANKII, b);
     }
 
     public void setRankIII(boolean b) {
         dataManager.set(RANKIII, b);
+    }
+
+    public void setFinalPhase(boolean b) {
+        dataManager.set(FINAL_PHASE, b);
     }
 
     public int getInvulTime() {
@@ -564,6 +534,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         cmp.setInteger(TAG_SHIELD, getShield());
         cmp.setBoolean(TAG_RANKII, getRankII());
         cmp.setBoolean(TAG_RANKIII, getRankIII());
+        cmp.setBoolean(TAG_FINAL_PHASE, isFinalPhase());
         cmp.setFloat(TAG_DAMAGETAKEN, getDamageTaken());
     }
 
@@ -581,6 +552,11 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
             playerCount = cmp.getInteger(TAG_PLAYER_COUNT);
         else
             playerCount = 1;
+
+        setRankII(cmp.getBoolean(TAG_RANKII));
+        setRankIII(cmp.getBoolean(TAG_RANKIII));
+        setFinalPhase(cmp.getBoolean(TAG_FINAL_PHASE));
+        setShield(cmp.getInteger(TAG_SHIELD));
 
         if (this.hasCustomName()) {
             this.bossInfo.setName(this.getDisplayName());
@@ -824,6 +800,43 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                         (float) Math.random() * 0.05F,
                         (float) (Math.random() - 0.5F) * 0.05F);
             }
+        }
+    }
+
+    private void triggerRankII() {
+        setRankII(true);
+        setShield(5);
+        spawnMinion();
+        spawnDivineJudge();
+        for (int i = 0; i < 2; i++) {
+            spawnSubspaceLanceRandomly();
+        }
+        sendArenaMessage("extrabotanymisc.minionSpawn", TextFormatting.WHITE);
+    }
+
+    private void triggerRankIII() {
+        setRankIII(true);
+        setShield(10);
+        spawnMinion();
+        spawnDivineJudge();
+        sendArenaMessage("extrabotanymisc.minionSpawn", TextFormatting.WHITE);
+    }
+
+    private void triggerFinalPhase() {
+        setFinalPhase(true);
+        setShield(3);
+        for (int i = 0; i < 4; i++) {
+            spawnSubspaceLanceRandomly();
+        }
+        if (!playersWhoAttacked.isEmpty()) {
+            setHealth(getMaxHealth());
+        }
+    }
+
+    private void sendArenaMessage(String translationKey, TextFormatting color, Object... args) {
+        for (EntityPlayer player : getPlayersAround()) {
+            player.sendMessage(new TextComponentTranslation(translationKey, args)
+                    .setStyle(new Style().setColor(color)));
         }
     }
 

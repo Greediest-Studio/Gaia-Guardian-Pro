@@ -67,7 +67,7 @@ public class BossSummonHandler {
     }
 
     @SubscribeEvent
-    public void onPlayerInteractEntity(PlayerInteractEvent.EntityInteract event) {
+    public static void onPlayerInteractEntity(PlayerInteractEvent.EntityInteract event) {
         if (event.getTarget() instanceof EntityGaiaPro) {
             EntityPlayer player = event.getEntityPlayer();
             ItemStack stack = player.getHeldItem(event.getHand());

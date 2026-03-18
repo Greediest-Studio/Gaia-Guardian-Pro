@@ -40,7 +40,7 @@ public class EntityMissile extends EntityThrowableCopy implements IBossProjectil
     }
 
     public EntityMissile(EntityLivingBase thrower) {
-        super(thrower.world);
+        super(thrower.world, thrower);
     }
 
     int time = 0;
@@ -58,7 +58,7 @@ public class EntityMissile extends EntityThrowableCopy implements IBossProjectil
     private static final DataParameter<Boolean> EFFECT = EntityDataManager.createKey(EntityMissile.class, DataSerializers.BOOLEAN);
     private static final DataParameter<Boolean> FIRE = EntityDataManager.createKey(EntityMissile.class, DataSerializers.BOOLEAN);
     private static final DataParameter<Integer> TARGET = EntityDataManager.createKey(EntityMissile.class, DataSerializers.VARINT);
-    private static final DataParameter<Boolean> Perplexity = EntityDataManager.createKey(EntityMissile.class, DataSerializers.BOOLEAN);
+    private static final DataParameter<Boolean> PERPLEXITY = EntityDataManager.createKey(EntityMissile.class, DataSerializers.BOOLEAN);
 
     @Override
     protected void entityInit() {
@@ -67,6 +67,7 @@ public class EntityMissile extends EntityThrowableCopy implements IBossProjectil
         dataManager.register(TRUEDAMAGE, 0F);
         dataManager.register(EFFECT, false);
         dataManager.register(FIRE, false);
+        dataManager.register(PERPLEXITY, false);
         dataManager.register(TARGET, 0);
     }
 
@@ -117,7 +118,7 @@ public class EntityMissile extends EntityThrowableCopy implements IBossProjectil
     }
 
     public void setPerplexity(boolean b) {
-        dataManager.set(EFFECT, b);
+        dataManager.set(PERPLEXITY, b);
     }
 
     public boolean getFire(){
@@ -129,7 +130,7 @@ public class EntityMissile extends EntityThrowableCopy implements IBossProjectil
     }
 
     public boolean getPerplexity() {
-        return dataManager.get(EFFECT);
+        return dataManager.get(PERPLEXITY);
     }
 
     public void setTarget(EntityPlayer e) {
