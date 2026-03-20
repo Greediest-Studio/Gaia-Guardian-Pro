@@ -1,6 +1,7 @@
 package com.smd.gaiapro.proxy;
 
 import com.mojang.authlib.GameProfile;
+import com.smd.gaiapro.common.config.GaiaProConfig;
 import com.smd.gaiapro.common.entity.ModEntities;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
@@ -9,7 +10,7 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 public class CommonProxy {
 
     public void preInit(FMLPreInitializationEvent event) {
-
+    GaiaProConfig.init(event.getModConfigurationDirectory());
     }
 
     public void postInit(FMLPostInitializationEvent event) {

@@ -10,6 +10,7 @@ import javax.annotation.Nonnull;
 import com.meteor.extrabotany.api.ExtraBotanyAPI;
 import com.meteor.extrabotany.api.entity.IEntityWithShield;
 import com.meteor.extrabotany.common.core.config.ConfigHandler;
+import com.smd.gaiapro.common.config.GaiaProConfig;
 import com.smd.gaiapro.common.sound.ModSoundEvents;
 import com.smd.gaiapro.common.tile.TileEntityElvenBeacon;
 import com.smd.gaiapro.gaiapro.Tags;
@@ -706,6 +707,8 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
             posY = savePosY;
             posZ = savePosZ;
             attackingPlayer = saveLastAttacker;
+
+            GaiaProConfig.spawnConfiguredDropsForPlayer(world, player);
         }
 
         trueKiller = null;
@@ -855,6 +858,9 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                     int yp = posYInt + j;
                     int zp = posZInt + k;
                     BlockPos posp = new BlockPos(xp, yp, zp);
+                    if (isGaiaProtectedBlock(world.getBlockState(posp).getBlock())) {
+                        continue;
+                    }
                     if (isCheatyBlock(world, posp)
                             || (ConfigHandler.GAIA_SMASH && !match(world.getBlockState(posp).getBlock()))) {
                         world.destroyBlock(posp, true);
@@ -1024,6 +1030,9 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                     Block block = state.getBlock();
 
                     if (state.getBlockHardness(world, pos) == -1)
+                        continue;
+
+                    if (isGaiaProtectedBlock(block))
                         continue;
 
                     if (CHEATY_BLOCKS.contains(block.getRegistryName())) {
@@ -1229,9 +1238,15 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     //匹配方块方法
     private boolean match(Block block) {
         String m = Block.REGISTRY.getNameForObject(block).toString();
-        if (m.indexOf("botania") != -1 || m.indexOf("extrabotany") != -1 || m.indexOf("minecraft") != -1)
+        if (m.indexOf("botania") != -1 || m.indexOf("extrabotany") != -1 || m.indexOf("minecraft") != -1
+                || m.indexOf("gaiapro") != -1)
             return true;
         return false;
+    }
+
+    private boolean isGaiaProtectedBlock(Block block) {
+        return block == com.smd.gaiapro.common.block.ModBlocks.ELVEN_BEACON
+                || ExtraBotanyAPI.gaiaBreakBlacklist.contains(block);
     }
 
     //假人判断方法
