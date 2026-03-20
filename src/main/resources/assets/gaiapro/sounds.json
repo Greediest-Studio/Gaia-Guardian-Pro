@@ -1,0 +1,11 @@
+{
+  "gaia_boss_music": {
+    "category": "master",
+    "sounds": [
+      {
+        "name": "gaiapro:gaia_boss_music",
+        "stream": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+item.gaiapro.cerlinite_calling.name=Calling of Cerlinite
+tile.gaiapro.elven_beacon.name=Elven Beacon
+effect.control=Reverse Control
+effect.control.desc=Movement inputs are inverted
+effect.gaiaspawn=Gaia Beckons
+effect.gaiaspawn.desc=Attributes are weakened
+message.gaiapro=All shortcuts end in judgment.

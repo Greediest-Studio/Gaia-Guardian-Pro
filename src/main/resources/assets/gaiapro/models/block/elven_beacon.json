@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/beacon",
+  "textures": {
+    "particle": "gaiapro:blocks/elven_beacon_glass",
+    "glass": "gaiapro:blocks/elven_beacon_glass",
+    "obsidian": "gaiapro:blocks/elven_beacon_base",
+    "beacon": "gaiapro:blocks/elven_beacon_core"
+  }
+}

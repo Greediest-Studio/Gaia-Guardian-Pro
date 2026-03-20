@@ -1,13 +1,13 @@
 package com.smd.gaiapro.event;
 
 import com.meteor.extrabotany.common.core.config.ConfigHandler;
+import com.smd.gaiapro.common.item.ModItems;
+import com.smd.gaiapro.common.tile.TileEntityElvenBeacon;
 import com.smd.gaiapro.common.entity.gaia.EntityGaiaPro;
 import com.smd.gaiapro.potion.ModPotion;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.potion.PotionEffect;
-import net.minecraft.tileentity.TileEntityBeacon;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
@@ -33,14 +33,12 @@ public class BossSummonHandler {
         EnumHand hand = event.getHand();
         ItemStack stack = player.getHeldItem(hand);
 
-        if (stack.getItem() == Items.BOOK && player.isSneaking()) {
+        if (stack.getItem() == ModItems.CERLINITE_CALLING && player.isSneaking()) {
             if (ConfigHandler.GAIA_ENABLE) {
                 if (EntityGaiaPro.spawn(player, stack, world, pos, false)) {
 
-                    if (!player.capabilities.isCreativeMode) {
-                        stack.shrink(1);
-                        player.addPotionEffect(new PotionEffect(ModPotion.GaiaSpawn, 200, 0));
-                    }
+                    stack.shrink(1);
+                    player.addPotionEffect(new PotionEffect(ModPotion.GaiaSpawn, 200, 0));
 
                     event.setCanceled(true);
                     event.setResult(Event.Result.ALLOW);
@@ -60,7 +58,7 @@ public class BossSummonHandler {
         BlockPos pos = event.getPos();
         EntityPlayer player = event.getEntityPlayer();
 
-        if ((world.getTileEntity(pos) instanceof TileEntityBeacon) && player.isPotionActive(ModPotion.GaiaSpawn)){
+        if ((world.getTileEntity(pos) instanceof TileEntityElvenBeacon) && player.isPotionActive(ModPotion.GaiaSpawn)){
             event.setCanceled(true);
             event.setResult(Event.Result.ALLOW);
         }

@@ -10,12 +10,15 @@ import javax.annotation.Nonnull;
 import com.meteor.extrabotany.api.ExtraBotanyAPI;
 import com.meteor.extrabotany.api.entity.IEntityWithShield;
 import com.meteor.extrabotany.common.core.config.ConfigHandler;
+import com.smd.gaiapro.common.sound.ModSoundEvents;
+import com.smd.gaiapro.common.tile.TileEntityElvenBeacon;
 import com.smd.gaiapro.gaiapro.Tags;
 import com.smd.gaiapro.potion.ModPotion;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.audio.ISound;
 import net.minecraft.client.audio.MovingSound;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
@@ -147,7 +150,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     //boss生成
     public static boolean spawn(EntityPlayer player, ItemStack stack, World world, BlockPos pos, boolean hard) {
         //检测是否是信标，真玩家，是否存在其他盖亚
-        if (!(world.getTileEntity(pos) instanceof TileEntityBeacon) || !isTruePlayer(player)
+        if (!(world.getTileEntity(pos) instanceof TileEntityElvenBeacon) || !isTruePlayer(player)
                 || getGaiaGuardiansAround(world, pos) > 0)
             return false;
 
@@ -1162,12 +1165,15 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         private final EntityGaiaPro guardian;
 
         public DopplegangerMusic(EntityGaiaPro guardian) {
-            super(com.meteor.extrabotany.common.core.handler.ModSounds.gaiaMusic3, SoundCategory.RECORDS);
+            super(ModSoundEvents.GAIA_BOSS_MUSIC, SoundCategory.MASTER);
             this.guardian = guardian;
             this.xPosF = guardian.getSource().getX();
             this.yPosF = guardian.getSource().getY();
             this.zPosF = guardian.getSource().getZ();
             this.repeat = true;
+            this.volume = 1.0F;
+            this.pitch = 1.0F;
+            this.attenuationType = ISound.AttenuationType.NONE;
         }
 
         @Override
@@ -1209,7 +1215,10 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         long msb = additionalData.readLong();
         long lsb = additionalData.readLong();
         bossInfoUUID = new UUID(msb, lsb);
-        Minecraft.getMinecraft().getSoundHandler().playSound(new DopplegangerMusic(this));
+        Minecraft minecraft = Minecraft.getMinecraft();
+        minecraft.getSoundHandler().stop(null, SoundCategory.MUSIC);
+        minecraft.getSoundHandler().stop(null, SoundCategory.RECORDS);
+        minecraft.getSoundHandler().playSound(new DopplegangerMusic(this));
     }
 
     @Override
