@@ -8,3 +8,6 @@ tile.gaiapro.elven_beacon.name=精灵信标
 tile.gaiapro.elven_beacon.desc=可替换贴图的自定义信标
 item.gaiapro.cerlinite_calling.name=苍灵之唤
 message.gaiapro=一切偷鸡，终将绳之以法
+message.gaiapro.dimension_blocked=当前维度不允许召唤盖亚守护者IV。模式：%s，当前维度：%s
+message.gaiapro.dimension_mode.blacklist=黑名单
+message.gaiapro.dimension_mode.whitelist=白名单

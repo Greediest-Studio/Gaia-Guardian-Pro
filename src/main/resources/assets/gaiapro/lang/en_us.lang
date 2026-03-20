@@ -5,3 +5,6 @@ effect.control.desc=Movement inputs are inverted
 effect.gaiaspawn=Gaia Beckons
 effect.gaiaspawn.desc=Attributes are weakened
 message.gaiapro=All shortcuts end in judgment.
+message.gaiapro.dimension_blocked=Gaia Guardian IV cannot be summoned in this dimension. Mode: %s, current dimension: %s
+message.gaiapro.dimension_mode.blacklist=Blacklist
+message.gaiapro.dimension_mode.whitelist=Whitelist

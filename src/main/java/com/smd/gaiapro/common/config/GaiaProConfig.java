@@ -13,23 +13,32 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class GaiaProConfig {
 
     private static final Logger LOGGER = LogManager.getLogger(Tags.MOD_NAME);
     private static final String CATEGORY_GAIA_GUARDIAN_IV = "gaia_guardian_iv";
     private static final String KEY_EXTRA_DROPS = "perPlayerExtraDrops";
+    private static final String KEY_SUMMON_DIMENSION_WHITELIST = "summonDimensionWhitelist";
+    private static final String KEY_SUMMON_DIMENSION_IDS = "summonDimensionIds";
     private static final String[] DEFAULT_EXTRA_DROPS = new String[0];
+    private static final int[] DEFAULT_SUMMON_DIMENSION_IDS = new int[0];
 
+    private static File configFile;
     private static Configuration configuration;
     private static List<ConfiguredDrop> perPlayerExtraDrops = Collections.emptyList();
+    private static boolean summonDimensionWhitelist = false;
+    private static Set<Integer> summonDimensionIds = Collections.emptySet();
 
     private GaiaProConfig() {
     }
 
     public static void init(File configDirectory) {
-        configuration = new Configuration(new File(configDirectory, Tags.MOD_ID + ".cfg"));
+        configFile = new File(configDirectory, Tags.MOD_ID + ".cfg");
+        configuration = new Configuration(configFile);
         sync();
     }
 
@@ -47,11 +56,40 @@ public final class GaiaProConfig {
             "Gaia Guardian IV dies and grants these extra drops to every attacking player. Format: modid:item@metadata,count"
         );
 
-        perPlayerExtraDrops = parseDrops(configuredEntries);
+        boolean configuredWhitelist = configuration.getBoolean(
+            KEY_SUMMON_DIMENSION_WHITELIST,
+                CATEGORY_GAIA_GUARDIAN_IV,
+            false,
+            "Set to true to treat summonDimensionIds as a whitelist. False means blacklist mode."
+        );
 
-        if (configuration.hasChanged()) {
+        int[] configuredDimensionIds = configuration.get(
+            CATEGORY_GAIA_GUARDIAN_IV,
+            KEY_SUMMON_DIMENSION_IDS,
+            DEFAULT_SUMMON_DIMENSION_IDS,
+            "Dimension ids used by the summon dimension blacklist/whitelist. Empty means no ids are configured."
+        ).getIntList();
+
+        perPlayerExtraDrops = parseDrops(configuredEntries);
+    summonDimensionWhitelist = configuredWhitelist;
+        summonDimensionIds = parseDimensionIds(configuredDimensionIds);
+
+        if (configuration.hasChanged() || (configFile != null && !configFile.exists())) {
             configuration.save();
         }
+    }
+
+    public static boolean canSummonGaiaInDimension(int dimensionId) {
+        boolean contains = summonDimensionIds.contains(dimensionId);
+        return summonDimensionWhitelist ? contains : !contains;
+    }
+
+    public static boolean isSummonDimensionWhitelist() {
+        return summonDimensionWhitelist;
+    }
+
+    public static Set<Integer> getSummonDimensionIds() {
+        return summonDimensionIds;
     }
 
     public static void spawnConfiguredDropsForPlayer(World world, EntityPlayer player) {
@@ -96,6 +134,19 @@ public final class GaiaProConfig {
         }
 
         return Collections.unmodifiableList(drops);
+    }
+
+    private static Set<Integer> parseDimensionIds(int[] configuredDimensionIds) {
+        if (configuredDimensionIds == null || configuredDimensionIds.length == 0) {
+            return Collections.emptySet();
+        }
+
+        Set<Integer> parsedIds = new HashSet<>();
+        for (int configuredDimensionId : configuredDimensionIds) {
+            parsedIds.add(configuredDimensionId);
+        }
+
+        return Collections.unmodifiableSet(parsedIds);
     }
 
     private static ConfiguredDrop parseDrop(String entry) {

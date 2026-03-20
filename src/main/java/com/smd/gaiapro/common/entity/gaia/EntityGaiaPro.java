@@ -155,6 +155,18 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
                 || getGaiaGuardiansAround(world, pos) > 0)
             return false;
 
+        if (!GaiaProConfig.canSummonGaiaInDimension(world.provider.getDimension())) {
+            if (!world.isRemote) {
+                String modeKey = GaiaProConfig.isSummonDimensionWhitelist() ? "whitelist" : "blacklist";
+                player.sendMessage(new TextComponentTranslation(
+                        "message.gaiapro.dimension_blocked",
+                        new TextComponentTranslation("message.gaiapro.dimension_mode." + modeKey),
+                        world.provider.getDimension())
+                        .setStyle(new Style().setColor(TextFormatting.RED)));
+            }
+            return false;
+        }
+
         //检测难度
         if (world.getDifficulty() == EnumDifficulty.PEACEFUL) {
             if (!world.isRemote)
