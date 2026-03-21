@@ -22,6 +22,7 @@ public final class GaiaProConfig {
     private static final Logger LOGGER = LogManager.getLogger(Tags.MOD_NAME);
     private static final String CATEGORY_GAIA_GUARDIAN_IV = "gaia_guardian_iv";
     private static final String KEY_EXTRA_DROPS = "perPlayerExtraDrops";
+    private static final String KEY_REPLACE_PER_PLAYER_LOOT_TABLE = "replacePerPlayerLootTable";
     private static final String KEY_SUMMON_DIMENSION_WHITELIST = "summonDimensionWhitelist";
     private static final String KEY_SUMMON_DIMENSION_IDS = "summonDimensionIds";
     private static final String[] DEFAULT_EXTRA_DROPS = new String[0];
@@ -30,6 +31,7 @@ public final class GaiaProConfig {
     private static File configFile;
     private static Configuration configuration;
     private static List<ConfiguredDrop> perPlayerExtraDrops = Collections.emptyList();
+    private static boolean replacePerPlayerLootTable = false;
     private static boolean summonDimensionWhitelist = false;
     private static Set<Integer> summonDimensionIds = Collections.emptySet();
 
@@ -53,7 +55,14 @@ public final class GaiaProConfig {
                 KEY_EXTRA_DROPS,
                 CATEGORY_GAIA_GUARDIAN_IV,
                 DEFAULT_EXTRA_DROPS,
-            "Gaia Guardian IV dies and grants these extra drops to every attacking player. Format: modid:item@metadata,count"
+            "Configured drops granted to every attacking player. When replacePerPlayerLootTable=true, these entries replace Gaia Guardian IV's normal per-player loot table. Otherwise they are granted in addition to the normal loot. Format: modid:item@metadata,count"
+        );
+
+        boolean configuredReplacePerPlayerLootTable = configuration.getBoolean(
+            KEY_REPLACE_PER_PLAYER_LOOT_TABLE,
+            CATEGORY_GAIA_GUARDIAN_IV,
+            false,
+            "Set to true to replace Gaia Guardian IV's normal per-player loot table with perPlayerExtraDrops. False keeps the original loot and grants configured drops in addition."
         );
 
         boolean configuredWhitelist = configuration.getBoolean(
@@ -71,7 +80,8 @@ public final class GaiaProConfig {
         ).getIntList();
 
         perPlayerExtraDrops = parseDrops(configuredEntries);
-    summonDimensionWhitelist = configuredWhitelist;
+        replacePerPlayerLootTable = configuredReplacePerPlayerLootTable;
+        summonDimensionWhitelist = configuredWhitelist;
         summonDimensionIds = parseDimensionIds(configuredDimensionIds);
 
         if (configuration.hasChanged() || (configFile != null && !configFile.exists())) {
@@ -90,6 +100,10 @@ public final class GaiaProConfig {
 
     public static Set<Integer> getSummonDimensionIds() {
         return summonDimensionIds;
+    }
+
+    public static boolean shouldReplacePerPlayerLootTable() {
+        return replacePerPlayerLootTable && !perPlayerExtraDrops.isEmpty();
     }
 
     public static void spawnConfiguredDropsForPlayer(World world, EntityPlayer player) {

@@ -597,7 +597,7 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     //指令杀效果
     @Override
     public void onKillCommand() {
-        this.setHealth(0.0F);
+        super.attackEntityFrom(DamageSource.OUT_OF_WORLD, Float.MAX_VALUE);
     }
 
     //受伤传送+限伤+挨打拉回玩家
@@ -687,9 +687,27 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
 
     @Override
     protected void dropLoot(boolean wasRecentlyHit, int lootingModifier, @Nonnull DamageSource source) {
+        boolean replacePerPlayerLootTable = GaiaProConfig.shouldReplacePerPlayerLootTable();
+        LinkedHashSet<EntityPlayer> recipients = new LinkedHashSet<>();
+
         // Save true killer, they get extra loot
         if ("player".equals(source.getDamageType()) && source.getTrueSource() instanceof EntityPlayer) {
             trueKiller = (EntityPlayer) source.getTrueSource();
+        }
+
+        if (trueKiller != null) {
+            recipients.add(trueKiller);
+        }
+
+        for (UUID u : playersWhoAttacked) {
+            EntityPlayer player = world.getPlayerEntityByUUID(u);
+            if (player != null) {
+                recipients.add(player);
+            }
+        }
+
+        if (recipients.isEmpty()) {
+            recipients.addAll(getPlayersAround());
         }
 
         // Drop equipment and clear it so multiple calls to super don't do it again
@@ -700,10 +718,12 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         }
 
         // Generate loot table for every single attacking player
-        for (UUID u : playersWhoAttacked) {
-            EntityPlayer player = world.getPlayerEntityByUUID(u);
-            if (player == null)
+        for (EntityPlayer player : recipients) {
+
+            if (replacePerPlayerLootTable) {
+                GaiaProConfig.spawnConfiguredDropsForPlayer(world, player);
                 continue;
+            }
 
             EntityPlayer saveLastAttacker = attackingPlayer;
             double savePosX = posX;
