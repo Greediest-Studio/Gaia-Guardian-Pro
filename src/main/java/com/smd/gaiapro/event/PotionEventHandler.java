@@ -1,11 +1,8 @@
 package com.smd.gaiapro.event;
 
 import com.smd.gaiapro.potion.ModPotion;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.MovementInput;
-import net.minecraftforge.client.event.InputUpdateEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -41,33 +38,6 @@ public class PotionEventHandler {
 
         if(player.isPotionActive(ModPotion.NoJump)){
             player.motionY = 0;
-        }
-    }
-
-    @SubscribeEvent
-    public static void onInputUpdate(InputUpdateEvent event) {
-        EntityPlayerSP player = (EntityPlayerSP) event.getEntityPlayer();
-
-        if (player.isPotionActive(ModPotion.Forst)) {
-
-            event.getMovementInput().moveForward = 0;
-            event.getMovementInput().moveStrafe = 0;
-
-            event.getMovementInput().sneak = false;
-
-        }
-    }
-
-    @SubscribeEvent
-    public static void onControl(InputUpdateEvent event) {
-        EntityPlayerSP player = (EntityPlayerSP) event.getEntityPlayer();
-
-        if (player.isPotionActive(ModPotion.Control)) {
-            MovementInput input = event.getMovementInput();
-
-            input.moveForward = -input.moveForward;
-            input.moveStrafe = -input.moveStrafe;
-
         }
     }
 }
