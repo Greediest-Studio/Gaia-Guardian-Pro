@@ -669,6 +669,11 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     @Override
     public void onDeath(@Nonnull DamageSource source) {
         super.onDeath(source);
+        if (world.isRemote) {
+            Minecraft.getMinecraft().getSoundHandler().stop("gaiapro:gaia_boss_music", SoundCategory.RECORDS);
+        } else {
+            world.playEvent(1010, getSource(), 0);
+        }
         playSound(SoundEvents.ENTITY_GENERIC_EXPLODE, 20F,
                 (1F + (world.rand.nextFloat() - world.rand.nextFloat()) * 0.2F) * 0.7F);
         world.spawnParticle(EnumParticleTypes.EXPLOSION_HUGE, posX, posY, posZ, 1D, 0D, 0D);
@@ -751,8 +756,13 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
     public void setDead() {
         if (world.isRemote) {
             Botania.proxy.removeBoss(this);
+            Minecraft.getMinecraft().getSoundHandler().stop("gaiapro:gaia_boss_music", SoundCategory.RECORDS);
         }
         world.playEvent(1010, getSource(), 0);
+        bossInfo.setVisible(false);
+        for (EntityPlayerMP player : new ArrayList<>(bossInfo.getPlayers())) {
+            bossInfo.removePlayer(player);
+        }
         super.setDead();
     }
 
@@ -1206,12 +1216,13 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
         private final EntityGaiaPro guardian;
 
         public DopplegangerMusic(EntityGaiaPro guardian) {
-            super(ModSoundEvents.GAIA_BOSS_MUSIC, SoundCategory.MASTER);
+            super(ModSoundEvents.GAIA_BOSS_MUSIC, SoundCategory.RECORDS);
             this.guardian = guardian;
             this.xPosF = guardian.getSource().getX();
             this.yPosF = guardian.getSource().getY();
             this.zPosF = guardian.getSource().getZ();
             this.repeat = true;
+            this.repeatDelay = 0;
             this.volume = 1.0F;
             this.pitch = 1.0F;
             this.attenuationType = ISound.AttenuationType.NONE;
@@ -1219,7 +1230,8 @@ public class EntityGaiaPro extends EntityLiving implements IBotaniaBoss, IEntity
 
         @Override
         public void update() {
-            if (!guardian.isEntityAlive()) {
+            if (guardian == null || guardian.isDead || !guardian.isEntityAlive() || guardian.world == null
+                    || guardian.world.getEntityByID(guardian.getEntityId()) != guardian) {
                 donePlaying = true;
             }
         }
